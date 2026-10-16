@@ -1,0 +1,1158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>OC — 7v7 Flag</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OC">
+<meta name="theme-color" content="#0C1310">
+<meta name="description" content="AI offensive coordinator for 7v7 flag football. Pick the defensive look, get the call.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230C1310'/><text y='23' x='16' text-anchor='middle' font-size='20' font-family='sans-serif' font-weight='bold' fill='%23FFB020'>OC</text></svg>">
+<style>
+:root{
+  --turf:#0C1310; --turf2:#131C17; --card:#16211B; --chalk:#EDF2EA; --chalk-dim:#8CA093;
+  --line:#2A3A31; --flag:#FFB020; --red:#FF5340; --blue:#4FC3E8;
+  --display:"Avenir Next Condensed","HelveticaNeue-CondensedBold","Arial Narrow",Impact,sans-serif;
+  --mono:ui-monospace,Menlo,"SF Mono",monospace;
+  --body:"Avenir Next","Helvetica Neue",Helvetica,sans-serif;
+  --safe:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--turf);color:var(--chalk);font-family:var(--body);font-size:16px;
+  -webkit-font-smoothing:antialiased;padding-bottom:calc(98px + var(--safe))}
+button,input,select{font-family:inherit;color:inherit;font-size:16px} /* 16px stops iOS zoom-on-focus */
+button{cursor:pointer;background:none;border:0}
+a{color:var(--flag)}
+h1,h2,h3{font-weight:400}
+
+header{padding:16px 16px 12px;border-bottom:1px solid var(--line)}
+h1{font-family:var(--display);font-size:clamp(25px,7.6vw,44px);line-height:.9;text-transform:uppercase;letter-spacing:.01em}
+h1 em{font-style:normal;color:var(--flag)}
+.sub{font-family:var(--mono);font-size:11px;color:var(--chalk-dim);letter-spacing:.03em;margin-top:6px;line-height:1.55}
+.sub b{color:var(--chalk)}
+
+nav{display:flex;border-bottom:1px solid var(--line);background:var(--turf);overflow-x:auto;
+  position:sticky;top:0;z-index:30;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{background:none;border:0;border-bottom:2px solid transparent;padding:13px 11px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.07em;color:var(--chalk-dim);white-space:nowrap;flex:1 1 auto;min-width:0}
+nav button.on{color:var(--flag);border-bottom-color:var(--flag)}
+
+main{padding:16px}
+section{display:none}
+section.on{display:block}
+
+.panel{border:1px solid var(--line);background:var(--turf2);margin-bottom:14px}
+.panel>h3{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--chalk-dim);
+  padding:10px 13px;border-bottom:1px solid var(--line);text-transform:uppercase}
+.panel .bd{padding:13px}
+
+label.f{display:block;margin-bottom:13px}
+label.f>span{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--chalk-dim);margin-bottom:6px;text-transform:uppercase}
+select{width:100%;background:var(--turf);border:1px solid var(--line);color:var(--chalk);
+  padding:11px 10px;font-family:var(--mono);font-size:14px;-webkit-appearance:none;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--chalk-dim) 50%),linear-gradient(135deg,var(--chalk-dim) 50%,transparent 50%);
+  background-position:calc(100% - 17px) 52%,calc(100% - 12px) 52%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+select:focus{outline:none;border-color:var(--flag)}
+
+/* tap grid for fronts — mobile first */
+.frontgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.frontgrid button{border:1px solid var(--line);background:var(--turf);padding:10px 9px;text-align:left;
+  font-family:var(--mono);font-size:13px;color:var(--chalk);line-height:1.3}
+.frontgrid button small{display:block;font-size:9.5px;color:var(--chalk-dim);letter-spacing:.04em;margin-top:3px}
+.frontgrid button.on{border-color:var(--flag);background:#1E2A1F}
+.frontgrid button.on small{color:var(--flag)}
+
+.seg{display:flex;border:1px solid var(--line);border-radius:2px;overflow:hidden}
+.seg button{flex:1;background:var(--turf);border:0;border-right:1px solid var(--line);padding:11px 3px;
+  font-family:var(--mono);font-size:12px;color:var(--chalk-dim);min-height:44px}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--flag);color:#0C1310;font-weight:700}
+
+/* sticky call bar */
+.callbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:linear-gradient(180deg,rgba(12,19,16,.75),var(--turf) 40%);
+  padding:9px 14px calc(9px + var(--safe));border-top:1px solid var(--line);display:flex;gap:9px}
+.callbar .go{flex:1;padding:15px;background:var(--flag);color:#0C1310;border:0;font-family:var(--display);
+  font-size:21px;letter-spacing:.05em;text-transform:uppercase}
+.callbar .share{flex:0 0 auto;padding:15px 16px;border:1px solid var(--flag);background:transparent;color:var(--flag);
+  font-family:var(--mono);font-size:11px;letter-spacing:.09em}
+.callbar .go:active,.callbar .share:active{transform:scale(.98)}
+
+.card{border:1px solid var(--line);background:var(--turf2);margin-bottom:16px}
+.cardhead{padding:14px;border-bottom:1px solid var(--line)}
+.playname{font-family:var(--display);font-size:clamp(28px,10vw,50px);line-height:.88;text-transform:uppercase}
+.playname .num{color:var(--flag);font-size:.5em;vertical-align:top;margin-right:.22em}
+.meta{font-family:var(--mono);font-size:12px;color:var(--chalk-dim);margin-top:7px;letter-spacing:.04em;line-height:1.6}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.chip{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;padding:4px 8px;border:1px solid var(--line);color:var(--chalk-dim);text-transform:uppercase}
+.chip.hot{border-color:var(--flag);color:var(--flag)}
+.chip.warn{border-color:var(--red);color:var(--red)}
+
+.diawrap{padding:12px;border-bottom:1px solid var(--line)}
+svg.dia{width:100%;height:auto;display:block;border:1px solid var(--line)}
+.dia text{font-family:var(--mono);font-size:4.3px;fill:#0C1310;font-weight:700}
+.dia .dl{fill:var(--red)}
+.dia .ol{fill:var(--blue)}
+.dia .cen{fill:#FFD27A;stroke:var(--flag);stroke-width:.7}
+.dia .route{stroke:var(--blue);stroke-width:1.15;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.dia .rt2{stroke:#8FD8F0;stroke-width:.85;stroke-dasharray:2.4 2.2;fill:none}
+.dia .chipc{stroke:var(--flag);stroke-width:1.6;fill:none;stroke-linecap:round}
+.dia .bufc{stroke:var(--red);stroke-width:1.1;fill:none;stroke-linecap:round}
+.dia .snap{stroke:var(--chalk);stroke-width:.7;stroke-dasharray:1.6 1.5;opacity:.8}
+.dia .rushline{stroke:var(--red);stroke-width:1;stroke-dasharray:2.5 2.5}
+.dia .yl{stroke:#1E2E26;stroke-width:.5}
+.dia .hash{stroke:#26382E;stroke-width:.7}
+.dia .los{stroke:var(--chalk);stroke-width:1;stroke-dasharray:4 3;opacity:.6}
+.dia .legend{font-size:3.1px;fill:#8CA093;font-weight:400}
+.key{font-family:var(--mono);font-size:11.5px;color:var(--chalk-dim);margin-top:9px;line-height:1.6;letter-spacing:.02em}
+
+.cols{padding:14px}
+.blk{margin-bottom:17px}
+.blk:last-child{margin-bottom:0}
+.blk h4{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--flag);text-transform:uppercase;margin-bottom:7px}
+.blk.warn h4{color:var(--red)}
+.blk p{line-height:1.6;color:#D3DED5;font-size:15px}
+table.asn{width:100%;border-collapse:collapse;font-size:14px}
+table.asn td{padding:7px 0;border-bottom:1px solid #1D2A23;vertical-align:top}
+table.asn tr:last-child td{border-bottom:0}
+table.asn td.p{font-family:var(--mono);color:var(--flag);width:30px;font-size:13px}
+table.asn td.r{font-family:var(--mono);color:var(--chalk);width:94px;font-size:11.5px;padding-right:8px}
+table.asn td.n{color:#B9C7BD;font-size:13.5px}
+table.asn tr.isC td.p{background:rgba(255,176,32,.14)}
+td.p .cdot{display:inline-block}
+
+.alts{padding:0 14px 14px;display:flex;gap:8px;flex-wrap:wrap}
+.altbtn{flex:1 1 140px;border:1px solid var(--line);background:var(--turf);padding:11px;text-align:left;min-height:52px}
+.altbtn b{display:block;font-family:var(--display);font-size:17px;text-transform:uppercase;letter-spacing:.02em}
+.altbtn i{font-family:var(--mono);font-size:9.5px;color:var(--chalk-dim);font-style:normal;letter-spacing:.07em}
+.altbtn:active{border-color:var(--flag)}
+.wide{width:100%;flex:none;margin-top:8px}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);-webkit-overflow-scrolling:touch}
+table.matrix{border-collapse:collapse;font-size:13.5px;min-width:660px}
+table.matrix th{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--chalk-dim);text-align:left;
+  padding:10px;border-bottom:1px solid var(--line);text-transform:uppercase;background:var(--turf2);position:sticky;top:0}
+table.matrix td{padding:11px 10px;border-bottom:1px solid #1D2A23;vertical-align:top;line-height:1.5}
+table.matrix td.k{font-family:var(--mono);color:var(--flag);white-space:nowrap;font-size:11.5px}
+
+.book{display:grid;grid-template-columns:1fr;gap:14px}
+.mini{border:1px solid var(--line);background:var(--turf2)}
+.mh{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.mh b{font-family:var(--display);font-size:19px;text-transform:uppercase}
+.mh i{font-family:var(--mono);font-size:9.5px;color:var(--chalk-dim);font-style:normal}
+.mb{padding:11px 12px;font-size:13.5px;color:#B9C7BD;line-height:1.55}
+.mb em{font-style:normal;color:var(--flag);font-family:var(--mono);font-size:10.5px;display:block;margin-bottom:6px}
+.mh2{padding:9px 12px;border-top:1px solid var(--line);background:#111A15;font-family:var(--mono);font-size:10px;color:var(--chalk-dim);line-height:1.6}
+
+.famrow{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+.famrow button{border:1px solid var(--line);background:var(--turf2);padding:8px 12px;font-family:var(--mono);font-size:11px;color:var(--chalk-dim);min-height:40px}
+.famrow button.on{border-color:var(--flag);color:var(--flag)}
+
+.prose{max-width:74ch;padding-bottom:20px}
+.prose h2{font-family:var(--display);font-size:clamp(24px,7vw,34px);text-transform:uppercase;margin:24px 0 9px}
+.prose h2:first-child{margin-top:0}
+.prose h3{font-family:var(--mono);font-size:11.5px;letter-spacing:.13em;color:var(--flag);text-transform:uppercase;margin:22px 0 7px}
+.prose p{line-height:1.7;margin-bottom:12px;color:#CCD8CE}
+.prose ul,.prose ol{margin:0 0 13px 19px;line-height:1.7;color:#CCD8CE}
+.prose li{margin-bottom:5px}
+.prose code{font-family:var(--mono);font-size:12.5px;background:#1B271F;padding:1px 5px;color:var(--flag)}
+.prose .callout{border-left:2px solid var(--flag);padding:2px 0 2px 14px;margin:16px 0;color:var(--chalk)}
+.prose strong{color:var(--chalk)}
+.foot{padding:18px 16px;color:var(--chalk-dim);font-family:var(--mono);font-size:10px;letter-spacing:.04em;border-top:1px solid var(--line);margin-top:20px;line-height:1.7}
+.toast{position:fixed;left:50%;bottom:calc(84px + var(--safe));transform:translateX(-50%) translateY(8px);
+  background:var(--flag);color:#0C1310;font-family:var(--mono);font-size:12px;padding:10px 16px;z-index:60;
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;max-width:88vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(min-width:900px){
+  body{padding-bottom:20px}
+  header{padding:22px 26px 14px}
+  main{padding:22px 26px}
+  .callbar{position:static;background:none;border:0;padding:0;margin-bottom:18px}
+  .callbar .go{font-size:20px;padding:13px}
+  .grid{display:grid;grid-template-columns:330px minmax(0,1fr);gap:24px;align-items:start}
+  .frontgrid{grid-template-columns:1fr}
+  .book{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+  .body2{display:grid;grid-template-columns:minmax(250px,42%) minmax(0,1fr)}
+  .diawrap{border-bottom:0;border-right:1px solid var(--line)}
+  .toast{bottom:28px}
+}
+@media print{nav,.callbar{position:static;display:none}section{display:block!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>AI Offensive <em>Coordinator</em></h1>
+  <div class="sub"><b>7v7 flag</b> · chip-block only, hands behind your back · rush releases on the snap
+    · <b>center snaps every play</b>, then blocks or releases · <b>KAIS</b> &amp; <b>FAREED</b> — both run the whole book</div>
+</header>
+
+<nav id="tabs">
+  <button data-t="call" class="on">CALL IT</button>
+  <button data-t="cheat">THEIR LOOK</button>
+  <button data-t="install">INSTALL</button>
+  <button data-t="book">PLAYBOOK</button>
+</nav>
+
+<main>
+
+<!-- ================= CALL IT ================= -->
+<section id="tab-call" class="on">
+<div class="grid">
+  <div>
+    <div class="panel">
+      <h3>1 · What are they showing you</h3>
+      <div class="bd"><div class="frontgrid" id="frontgrid"></div></div>
+    </div>
+
+    <div class="panel">
+      <h3>2 · How are they covering</h3>
+      <div class="bd">
+        <label class="f"><span>Coverage</span>
+          <div class="seg" id="i_cov">
+            <button data-v="zone" class="on">ZONE</button><button data-v="man">MAN</button><button data-v="press">PRESS</button>
+          </div></label>
+        <label class="f" style="margin-bottom:0"><span>Who's at QB</span>
+          <div class="seg" id="i_qb">
+            <button data-v="kais" class="on">KAIS</button><button data-v="fareed">FAREED</button><button data-v="either">EITHER</button>
+          </div></label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>3 · Situation</h3>
+      <div class="bd">
+        <label class="f"><span>Down</span>
+          <div class="seg" id="i_down">
+            <button data-v="1st">1ST</button><button data-v="2nd">2ND</button><button data-v="3rd" class="on">3RD</button><button data-v="4th">4TH</button>
+          </div></label>
+        <label class="f"><span>Yards to go</span>
+          <div class="seg" id="i_dist">
+            <button data-v="short">1-3</button><button data-v="med" class="on">4-7</button><button data-v="long">8+</button>
+          </div></label>
+        <label class="f" style="margin-bottom:0"><span>Field position</span>
+          <select id="i_zone">
+            <option value="backed">Backed up (own 5)</option>
+            <option value="open" selected>Open field (middle)</option>
+            <option value="edge">Fringe (their 25)</option>
+            <option value="rz">Red zone (their 15)</option>
+            <option value="gl">Goal line / 2-pt</option>
+          </select></label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Read of the front</h3>
+      <div class="bd"><p class="key" id="front_read" style="margin:0">—</p></div>
+    </div>
+  </div>
+  <div id="out"></div>
+</div>
+<div style="height:8px"></div>
+</section>
+
+<!-- ================= POLICY ================= -->
+<section id="tab-cheat">
+  <div class="prose" style="margin-bottom:16px">
+    <h2>The whole offense in one table</h2>
+    <p>Seven defenders is a fixed number. Every front is just them choosing <em>where</em> to be short. The job is never to beat their best player — it's to attack the spot they left empty. This is the entire policy; the plays are how you execute each row.</p>
+  </div>
+  <div class="tablewrap"><table class="matrix" id="matrix"></table></div>
+  <div class="prose" style="margin-top:26px">
+    <h3>The counting rule</h3>
+    <p>Offense has seven too. Subtract their rushers from seven and that's how many bodies they have in coverage. You have six eligibles plus a running QB. So:</p>
+    <ul>
+      <li><strong>They rush 1</strong> → six in coverage on six eligibles plus a QB. <em>Nobody is on the QB.</em> That's the biggest edge in this league.</li>
+      <li><strong>They rush 2</strong> → five in coverage. You have a plus-one somewhere, every snap.</li>
+      <li><strong>They rush 3</strong> → four in coverage. Six eligibles on four bodies: somebody is uncovered at the snap.</li>
+      <li><strong>They rush 4+</strong> → three or fewer in coverage and four free lanes. Quick game, screens, QB takeoff.</li>
+      <li><strong>They rush 0</strong> → all seven have their backs turned and nobody can tackle a running QB.</li>
+    </ul>
+    <div class="callout"><p><strong>Free rusher, no real blocking, so the clock is about 2.2 seconds.</strong> Every play here gets the ball out, or the QB past the line, before that. Anything needing longer buys the time with a chip first.</p></div>
+  </div>
+</section>
+
+<!-- ================= INSTALL ================= -->
+<section id="tab-install">
+<div class="prose">
+  <h2>Install rules</h2>
+  <p>Non-negotiable. These are what make the plays on the other tabs actually work.</p>
+
+  <h3>0. The center is the engine of this offense</h3>
+  <p>He snaps every single play, and he is the only player who is <em>never covered at the snap.</em> Seven defenders have their eyes on the receivers and the QB — nobody is assigned to the snapper. That makes him two weapons at once:</p>
+  <ul>
+    <li><strong>As a blocker:</strong> he's already at the ball, so he's the only player who can touch the interior rusher without giving ground. Hands behind the back, body in the lane, one beat, then release.</li>
+    <li><strong>As a receiver:</strong> when he snaps and releases clean, he is wide open against any front that rushes two or fewer. That's a free 7 yards, and against man it's a walk-in because his defender is in trail on somebody else.</li>
+  </ul>
+  <p>Rules for the center, every rep:</p>
+  <ol>
+    <li><strong>Snap, then head up in under half a second.</strong> If he's slow out of the snap he's a statue, and the rush beats him to the QB.</li>
+    <li><strong>Blocking: never chase past the line.</strong> Get in the lane, take one beat, release. If you chase, you block nobody and run nobody open.</li>
+    <li><strong>Releasing: snap and go.</strong> No fake, no hesitation — a clean release is worth more than a half-hearted chip.</li>
+    <li><strong>He is always live.</strong> Any play with the center releasing, the QB's checkdown is the center at 6 yards. Take it when nothing else is there.</li>
+  </ol>
+  <div class="callout"><p>Every play in the book already tells the center his job — <code>snap and set</code>, <code>snap and lead</code>, <code>chip then flat</code>, <code>snap and release</code>. That's the <strong>C</strong> row in every assignment table, and his route is drawn in amber.</p></div>
+
+  <h3>1. The chip is a speed bump, not a wall</h3>
+  <p>Hands behind your back means no punch, no lockout, no anchor. Stop trying to hold anybody. The chip's only job is to put your body in the rusher's path for one beat.</p>
+  <ul>
+    <li>Line up <strong>in his lane</strong>, not next to him. Speeds off the edge: get in the runway.</li>
+    <li>Step into him and turn your shoulder in — a moving pick, not a blocker.</li>
+    <li><strong>Never chase.</strong> Once he's past your hip, release into the route.</li>
+    <li>The chip is a <em>free release</em> into the flat. When they rush hard, the chipper in the flat is usually the openest man on the field.</li>
+  </ul>
+
+  <h3>2. Kais and Fareed both run the whole book</h3>
+  <p>Same playbook, same formations, same motions — the defense never gets to know which one is in. Both can run the QB series and both can throw it over the top. Only the flavor changes:</p>
+  <ul>
+    <li><strong>Kais in:</strong> lean on <code>QB Power</code>, <code>Jet Keep</code>, <code>Empty QB Iso</code>, <code>Zone Keep</code>. Every time he runs it, a defender has to stop looking at a receiver — so the next snap somebody is open by three steps.</li>
+    <li><strong>Fareed in:</strong> lean on <code>Four Verts</code>, <code>Deep Cross</code>, <code>Post-Wheel</code>, <code>Play-Action Bomb</code>. Two-deep safeties are two guys who can't help on a crosser: make them choose, throw behind the choice.</li>
+    <li><strong>Dual:</strong> put them on the field together and use motion and throwback. Jet motion with a throwback, or orbit motion with the QB leaking — with either one live as the runner and the other live as the thrower. Defenses never match it up correctly.</li>
+    <li><strong>Never signal which one is at QB.</strong> If they guess wrong they're in the wrong coverage all drive.</li>
+  </ul>
+
+  <h3>3. Scramble drill — a rule, not a play</h3>
+  <p>The moment the QB breaks contain, four things happen, every time, no signal:</p>
+  <ol>
+    <li>Nearest eligible <strong>comes back to the QB</strong> at 8-10 yards. Bail-out.</li>
+    <li>The receiver on the QB's <strong>throwing-hand side</strong> takes his route <strong>deep</strong>.</li>
+    <li>The receiver on the <strong>opposite side crosses the field</strong> behind the QB's path. In flag that's a 30-yard play.</li>
+    <li>Everyone else <strong>gets to a window and stays put</strong>. Don't drift into the QB's eyes.</li>
+  </ol>
+  <p>The center leads this: he's the closest body, so he is always the check-back. Five minutes every practice until it's reflex.</p>
+
+  <h3>4. Motion rules</h3>
+  <ul>
+    <li><strong>Motion is a read, not decoration.</strong> Man travels with the motion; zone doesn't. Call the answer off the motion.</li>
+    <li>Motion <strong>before the snap</strong> is free — use it to flip a 2x2 into a 3x1 and back.</li>
+    <li>Motion a man <strong>into</strong> a chip lane when the rusher is winning. A body arriving on the move beats one standing still.</li>
+    <li>Never motion a man across and throw it back unless you've repped the throwback.</li>
+  </ul>
+
+  <h3>5. Coverage keys</h3>
+  <ul>
+    <li><strong>Eyes:</strong> man defenders look at you; zone defenders look at the QB.</li>
+    <li><strong>Depth:</strong> tight and up = man/press. Bodies at 8-10 with heads on the QB = zone.</li>
+    <li><strong>Motion:</strong> man travels, zone doesn't. Motion twice if you're not sure — some teams travel as a bluff.</li>
+    <li><strong>Count the deep:</strong> one safety = post behind the crosser. Two safeties = seam and over, and run the QB at them.</li>
+  </ul>
+  <p>If they disguise well, call the <strong>two-play</strong>: quick game to the side they show plus a vertical tagged on it. Whichever way they jump, one of the two is right.</p>
+
+  <h3>6. Cadence</h3>
+  <ul>
+    <li>Vary the count. The rush can leave on the ball, so a hard count gets you a free five and gets him guessing.</li>
+    <li>Obvious passing downs: snap on 1. Don't let them time it.</li>
+    <li>Red zone: snap on 1 every time. No thinking, no pre-snap penalties.</li>
+  </ul>
+
+  <h3>7. First five to install</h3>
+  <p><strong>Bubble Now, Slant-Flat, Post-Wheel, Four Verts, QB Power</strong> — plus <strong>Center Leak</strong>, because it's free. That is a complete offense; everything else is a variation on one of those six.</p>
+</div>
+</section>
+
+<!-- ================= PLAYBOOK ================= -->
+<section id="tab-book">
+  <div class="prose" style="margin-bottom:14px">
+    <h2>Full playbook</h2>
+    <p>Every play is tagged with the fronts and coverages it beats. Amber route = the center. Diagrams follow whatever front you selected on the Call It tab.</p>
+  </div>
+  <div class="famrow" id="famrow"></div>
+  <div class="book" id="book"></div>
+</section>
+
+</main>
+
+<div class="foot">
+  AI Offensive Coordinator · 7v7 flag · works offline · add to home screen for full screen<br>
+  <span id="homelink"></span>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="callbar">
+  <button class="share" id="btn_share">SHARE</button>
+  <button class="go" id="btn_call">CALL IT</button>
+</div>
+
+<script>
+/* ==========================================================
+   7v7 FLAG — OFFENSIVE COORDINATOR
+   Field: x 0..100 across, y 0..108. LOS at y=64. Downfield = -y.
+   OFFENSE (7): QB + C + X A Y Z R.  C snaps the ball EVERY play.
+   DEFENSE (7): drawn from the selected front.
+   ========================================================== */
+const LOS = 64, QBGUN = 72;
+
+/* ---------- defensive fronts ---------- */
+const FRONTS = {
+  "0-7":   {r:0,u:7,d:0, short:"No rush, 7 across", tag:"0-7",
+    read:"Nobody rushing. All seven in coverage — but seven bodies can't cover six eligibles AND a running QB. Whoever takes off behind the rush is untouched.",
+    answer:"QB takes off, or throw underneath and run after the catch",
+    def:[[10,54],[24,54],[38,54],[50,54],[62,54],[76,54],[90,54]]},
+  "0-6-1": {r:0,u:6,d:1, short:"No rush, 6 under 1 deep", tag:"0-6-1",
+    read:"No rusher. Six underneath, one deep. Everything is contested short but the QB has all day and the middle behind the six is soft.",
+    answer:"QB run, or pick and rub the six underneath",
+    def:[[12,54],[28,54],[42,54],[58,54],[72,54],[88,54],[50,38]]},
+  "1-5-1": {r:1,u:5,d:1, short:"1 rusher, 5 under 1 deep", tag:"1-5-1",
+    read:"One rusher, five underneath, one deep. Six bodies in coverage on your six eligibles — which means NOBODY has the quarterback, and the center is uncovered too.",
+    answer:"QB run and Center Leak all day; at Fareed, isolate the fifth cover man then bomb the lone safety off play action",
+    def:[[50,58],[14,52],[33,53],[50,52],[67,53],[86,52],[50,38]]},
+  "2-4-1": {r:2,u:4,d:1, short:"2 rushers, 4 under 1 deep", tag:"2-4-1",
+    read:"Their base. Two free rushers, four underneath, one safety. Four coverage bodies for five eligibles plus the QB — you have a plus-one every snap and the safety is alone downfield.",
+    answer:"Flood the four-under 3-on-2 one side, chip one rusher, bend the safety with a post behind a crosser, center releases",
+    def:[[43,60],[57,60],[18,54],[38,55],[62,55],[82,54],[50,38]]},
+  "3-3-1": {r:3,u:3,d:1, short:"3 rushers, 3 under 1 deep", tag:"3-3-1",
+    read:"Heavy pressure, thin coverage. Three rushers means three free lanes and only three underneath for six eligibles — somebody is uncovered at the snap.",
+    answer:"Quick game and screens, ball out in 1.5s, or QB draw behind the three rushers; center snaps to the flat",
+    def:[[36,60],[50,59],[64,60],[26,54],[50,55],[74,54],[50,38]]},
+  "1-4-2": {r:1,u:4,d:2, short:"1 rusher, 4 under 2 deep", tag:"1-4-2",
+    read:"One rusher, two deep safeties. They're daring you to throw underneath and taking away the bomb. The void between the under and the deep is wide open and there's still nobody on the QB.",
+    answer:"Seam and deep over between the safeties, hi-lo the four underneath, QB runs because only one man can chase",
+    def:[[50,58],[22,55],[40,55],[60,55],[78,55],[33,36],[67,36]]},
+  "2-3-2": {r:2,u:3,d:2, short:"2 rushers, 3 under 2 deep", tag:"2-3-2",
+    read:"Two deep and only three underneath. The shallow and intermediate middle is wide open and three under can't cover five eligibles — you're plus-two with the QB.",
+    answer:"Shallow cross and sit routes underneath all day; two-high means run the QB straight at the safeties",
+    def:[[40,60],[60,60],[25,55],[50,55],[75,55],[33,36],[67,36]]},
+  "4-2-1": {r:4,u:2,d:1, short:"4 rushers — all-out blitz", tag:"4-2-1",
+    read:"All-out pressure. Four free rushers, only TWO underneath and one deep. Six eligibles on three coverage bodies — somebody is uncovered at the snap, but the QB has about 1.5 seconds.",
+    answer:"Ball out in 1.2s: Bubble Now, Slant-Flat, Tunnel Screen; or QB draw into the lanes the four rushers vacated",
+    def:[[30,60],[45,59],[60,59],[75,60],[28,53],[72,53],[50,38]]}
+};
+
+/* ---------- formations: QB + C + X A Y Z R  (7) ---------- */
+const FORMS = {
+  doubles: {label:"DOUBLES 2x2", p:{QB:[50,QBGUN],C:[50,65.5],X:[7,66],A:[30,68],Y:[70,68],Z:[93,66],R:[44,80]}},
+  trips_rt:{label:"TRIPS RT 3x1", p:{QB:[50,QBGUN],C:[50,65.5],X:[6,66],A:[72,69],Y:[84,67],Z:[94,66],R:[44,80]}},
+  trips_lt:{label:"TRIPS LT 3x1", p:{QB:[50,QBGUN],C:[50,65.5],X:[94,66],A:[28,69],Y:[16,67],Z:[6,66],R:[56,80]}},
+  empty:   {label:"EMPTY 5 wide", p:{QB:[50,74],C:[50,65.5],X:[6,66],A:[28,68],Y:[44,70],Z:[56,70],R:[94,66]}},
+  ace:     {label:"ACE 2 backs", p:{QB:[50,QBGUN],C:[50,65.5],X:[7,66],A:[30,68],Y:[80,70],Z:[93,66],R:[44,80]}},
+  deuce:   {label:"DEUCE 2x2", p:{QB:[50,QBGUN],C:[50,65.5],X:[7,66],A:[28,68],Y:[72,68],Z:[93,66],R:[44,80]}},
+  bunch_rt:{label:"BUNCH RT", p:{QB:[50,QBGUN],C:[50,65.5],X:[7,66],A:[76,69],Y:[80,66],Z:[84,69],R:[34,74]}},
+  stack_rt:{label:"STACK RT", p:{QB:[50,QBGUN],C:[50,65.5],X:[7,66],A:[80,69],Y:[70,73],Z:[80,63.5],R:[34,74]}},
+  quad_rt: {label:"QUAD RT 4x1", p:{QB:[50,QBGUN],C:[50,65.5],X:[6,66],A:[66,70],Y:[76,67],Z:[86,69],R:[94,66]}}
+};
+
+/* ---------- route library ---------- */
+const RT = {
+  go:s=>[[0,-46]], fade:s=>[[s*2.5,-32]], post:s=>[[0,-11],[-s*13,-25]], corner:s=>[[0,-11],[s*13,-22]],
+  out:s=>[[0,-5],[s*12,-1]], dig:s=>[[0,-11],[-s*21,-1]], cross:s=>[[0,-9],[-s*27,-8]], drag:s=>[[0,-2],[-s*29,-2]],
+  curl:s=>[[0,-11],[0,7]], hitch:s=>[[0,-6],[0,4]], comeback:s=>[[0,-15],[s*6,7]], slant:s=>[[0,-3],[-s*17,-10]],
+  flat:s=>[[0,1],[s*11,-2]], arrow:s=>[[0,-2],[s*12,-4]], wheel:s=>[[s*9,-1],[s*3,-30]], seam:s=>[[0,-25]],
+  bubble:s=>[[0,3],[s*12,1]], swing:s=>[[s*5,2],[s*13,-3]], angle:s=>[[0,-3],[-s*12,-8]], snag:s=>[[0,-5],[s*8,-1]],
+  shoot:s=>[[0,-4],[-s*15,-6]], screen:s=>[[0,1],[s*7,1]], strike:s=>[[0,-22]], jet:s=>[[-s*22,0]], motion:s=>[[s*24,0]], stay:s=>[[0,0]],
+  /* --- center jobs --- */
+  snapset: s=>[[0,-1]],
+  lead:    s=>[[s*9,-3]],
+  chipout: s=>[[0,-2],[s*11,-3]],
+  chipseam:s=>[[0,-6],[0,-15]],
+  leak:    s=>[[0,-7],[0,3]],
+  snapflat:s=>[[s*10,-3]]
+};
+const CROUTES = ["snapset","lead","chipout","chipseam","leak","snapflat"];
+
+/* ---------- center job phrasing (r, note) ---------- */
+const CJOBS = {
+  snapset:{r:"snapset", n:"Snap and set — body in the interior lane, hands behind the back, one beat, then release."},
+  lead:   {r:"lead",    n:"Snap and lead — get on the force defender's outside shoulder and stay in front of the ball."},
+  chipout:{r:"chipout", n:"Snap, chip the interior rusher, release to the flat. Free release — he's uncovered after the chip."},
+  chipseam:{r:"chipseam",n:"Snap, chip, release vertical up the seam. Nobody is assigned to the snapper."},
+  leak:   {r:"leak",    n:"Snap and release CLEAN to 7 yards, sit in the window. He is uncovered — free yards."},
+  snapflat:{r:"snapflat",n:"Snap and release to the flat off the snap. Uncovered against any 0-2 rush."}
+};
+const C_ = j => ({p:"C", r:CJOBS[j].r, n:CJOBS[j].n, c:j});
+
+/* ---------- plays ----------
+   beats: front id or man|zone|press   sit: short|med|long|rz|gl|backed|open|edge
+   fam: Quick Run Screen Rub Shot Flood Motion Center Situational
+------------------------------------------------------------------ */
+const A = (p,r,n)=>({p,r,n});
+const PLAYS = [
+/* ===== QUICK ===== */
+{id:"q1",n:"Bubble Now",fam:"Quick",form:"doubles",qb:["both"],beats:["1-5-1","3-3-1","2-3-2","0-6-1","4-2-1","zone"],sit:["short","med","open"],
+ asn:[A("X","hitch","Now — 6 and sit. Throw if the corner backs off."),A("A","bubble","Bubble out, catch moving. This is the ball."),
+      A("Y","slant","Slant, 8 yards, behind the bubble."),A("Z","go","Clear the corner out."),A("R","swing","Swing — checkdown."),C_("chipout")],
+ chip:["C"],read:"Catch the snap, one step, eyes on A's bubble. Flat defender widens = bubble. He jumps it = X on a now.",
+ why:"The defense can't be right. A 1.2-second throw makes their flat defender cover six yards of ground with the ball already in the air. Press to take it and X's now is a free six.",
+ counter:"They'll walk the flat defender up and jam A.",next:"q2",next2:"q4"},
+
+{id:"q2",n:"Slant-Flat",fam:"Quick",form:"doubles",qb:["both"],beats:["man","press","1-5-1","2-4-1","3-3-1","4-2-1"],sit:["short","med","open","backed"],
+ asn:[A("X","slant","Slant off the corner's outside shoulder — three steps then in."),A("A","flat","To the flat, four yards and out."),
+      A("Y","slant","Slant — same as X, ball goes to the better leverage."),A("Z","flat","Wide flat."),A("R","chipout","Chip the rush, release to the vacated middle."),C_("snapset")],
+ chip:["C"],read:"Read the flat defender. Flares out = slant. Sits = flat. Throw opposite.",
+ why:"The oldest two-man conflict in football and the best one against man: one defender cannot cover a slant and a flat at once. Against press it's a free release because the corner is standing still.",
+ counter:"They'll back the corners off and widen the flat defender.",next:"q3",next2:"q7"},
+
+{id:"q3",n:"Double Slant",fam:"Quick",form:"trips_rt",qb:["both"],beats:["man","press","1-4-2","2-4-1","3-3-1","4-2-1"],sit:["short","med","long","open"],
+ asn:[A("X","drag","Shallow drag to the far side."),A("A","slant","Slant, 6 yards — ball is in the air on step 2."),
+      A("Y","slant","Slant behind A — hi-lo the same defender."),A("Z","hitch","Now, five and sit."),A("R","chipout","Chip and release to the flat."),C_("leak")],
+ chip:["R"],read:"Two slants stacked on one linebacker. He takes the front one, throw the back one. Center leaks behind it.",
+ why:"Man coverage with two slants at the same defender is unanswerable — he can only trail one. Behind them the field sits open, and the center releasing clean is a free seven.",
+ counter:"They'll switch or play the slants with a trailing zone defender.",next:"q5",next2:"p1"},
+
+{id:"q4",n:"Now + Go",fam:"Quick",form:"doubles",qb:["both"],beats:["press","man","0-6-1","0-7"],sit:["short","med","open"],
+ asn:[A("X","hitch","Now, five yards. Press = free five on the release."),A("A","hitch","Now five and sit — catch and fall."),
+      A("Y","fade","Fade if the corner squats."),A("Z","go","Bomb if the safety bites."),A("R","screen","Sit in front of the rush."),C_("snapset")],
+ chip:["C"],read:"Throw the now unless you get an obviously squatting corner — then the fade over his head.",
+ why:"Pure leverage test. Press kills the now but gives up the go; soft coverage gives up the now. With a real arm in the gun, press is a death sentence either way.",
+ counter:"They'll play off and rally up.",next:"q1",next2:"s1"},
+
+{id:"q5",n:"Stick",fam:"Quick",form:"trips_rt",qb:["both"],beats:["zone","1-5-1","1-4-2","2-3-2","3-3-1"],sit:["med","short","open","long"],
+ asn:[A("X","go","Clear the field side."),A("A","out","Five and out — the flat of the three-level."),A("Y","snag","Five, sit behind the flat defender."),
+      A("Z","corner","Corner over the top — the deep level."),A("R","chipout","Chip then checkdown."),C_("chipout")],
+ chip:["C"],read:"Three levels on one side. Flat defender drops = snag. He sits = out. Corner is the bomb if the safety leans.",
+ why:"A three-level flood on one sideline is the cleanest zone-beater there is. A zone defender can only take one level; the other two are open by rule, not luck. The center chipping then leaking adds a fourth.",
+ counter:"They'll roll the safety over the top of the corner.",next:"f2",next2:"v2"},
+
+{id:"q6",n:"Snag / Spacing",fam:"Quick",form:"bunch_rt",qb:["both"],beats:["zone","2-4-1","2-3-2","1-5-1"],sit:["short","med","open","rz"],
+ asn:[A("X","drag","Shallow drag from the back side."),A("A","snag","Five and sit — the money throw."),A("Y","arrow","To the flat off the bunch."),
+      A("Z","corner","Corner, twelve yards."),A("R","chipout","Chip then sit in the middle."),C_("snapflat")],
+ chip:["R"],read:"Snag to A unless the flat defender sits on it, then the arrow. Drag is the second read.",
+ why:"Out of a bunch the releases are free and the defense has to declare. Three levels plus a drag behind it — four bodies cannot cover all of it.",
+ counter:"They'll play man out of the bunch to avoid the rub.",next:"p3",next2:"q2"},
+
+{id:"q7",n:"QB Check-Swing",fam:"Quick",form:"ace",qb:["both"],beats:["2-4-1","3-3-1","2-3-2","1-5-1","4-2-1"],sit:["short","med","backed","long"],
+ asn:[A("X","hitch","Now five, sit."),A("A","slant","Slant."),A("Y","go","Vertical."),A("Z","hitch","Now five, sit."),
+      A("R","swing","Swing to the flat — the answer to the free rush."),C_("snapset")],
+ chip:["C"],read:"Swing to R first. It's the free rusher's punishment and a 1.1-second throw.",
+ why:"The best anti-blitz call in flag. The rusher is sprinting upfield with his back to the ball and R catches it already running into space. Center is the second check if they chase the swing.",
+ counter:"They'll blitz a corner off the edge instead.",next:"s1",next2:"r1"},
+
+/* ===== CENTER SERIES ===== */
+{id:"c1",n:"Center Leak",fam:"Center",form:"empty",qb:["both"],beats:["1-5-1","0-6-1","0-7","2-3-2","zone"],sit:["short","med","open"],
+ asn:[A("X","go","Vertical — clear the corner."),A("A","go","Vertical."),A("Y","cross","Deep cross to drag the safety."),
+      A("Z","go","Vertical."),A("R","out","Five and out."),C_("chipseam")],
+ chip:["C"],
+ read:"Snap and throw it to the center the moment he clears the rush. He is uncovered. If they chase him, the out to R or the cross to Y is wide open.",
+ why:"The snapper is the one player no defense accounts for. Against any front that rushes two or fewer, the middle at seven yards is empty and the center is standing in it alone. Free yards, and it forces them to spend a defender — which opens everything else.",
+ counter:"They'll point a linebacker at the center.",next:"v1",next2:"c2"},
+
+{id:"c2",n:"Center Arrow",fam:"Center",form:"deuce",qb:["both"],beats:["man","press","1-5-1","3-3-1"],sit:["short","med","rz","gl"],
+ asn:[A("X","go","Clear out."),A("A","slant","Slant."),A("Y","dig","Dig at twelve."),A("Z","hitch","Now five, sit."),
+      A("R","swing","Swing wide to hold the flat defender."),C_("snapflat")],
+ chip:["R"],read:"Snap and throw the center to the flat. Against man he's covered by nobody — his man is trailing a receiver.",
+ why:"Against man the center's defender is always somebody else's trail. He snaps, turns, and catches a ball with a five-yard head start over the nearest body. This is why the center must be a threat every snap.",
+ counter:"They'll drop a defender to the flat.",next:"q2",next2:"c3"},
+
+{id:"c3",n:"Snap Go",fam:"Center",form:"empty",qb:["both"],beats:["press","man","1-5-1","0-6-1"],sit:["long","med","open"],
+ asn:[A("X","go","Vertical."),A("A","post","Post to bend the safety."),A("Y","seam","Seam."),A("Z","go","Vertical."),
+      A("R","out","Five and out."),C_("chipseam")],
+ chip:["C"],read:"Center chips then runs the seam. If the safety takes him, the post is over the top — that's the throw.",
+ why:"Nobody plans for the snapper running vertical. The safety has to choose between the center up the middle and the post, and he'll be a step late on either. It's a shot with a built-in bail-out.",
+ counter:"They'll put a safety on the seam.",next:"v1",next2:"c1"},
+
+/* ===== RUN ===== */
+{id:"r1",n:"QB Power",fam:"Run",form:"ace",qb:["both"],beats:["1-5-1","0-6-1","0-7","2-4-1","1-4-2","man","zone"],sit:["short","med","open","rz","gl","long"],
+ asn:[A("X","go","Run the corner off."),A("A","drag","Shallow drag to hold the backside."),A("Y","stay","Kick the edge — get a body on the force defender."),
+      A("Z","go","Clear out."),A("R","stay","Lead through the A-gap."),C_("lead")],
+ chip:["C"],read:"Snap and go. Read the force defender: widens = cut up behind him; sits = take the edge.",
+ why:"With one rusher, NOBODY is assigned to the quarterback. He's the seventh eligible, untouched for the first five yards, and the center snapping is already out in front of him.",
+ counter:"They'll commit a second defender to the QB or walk a safety down.",next:"v1",next2:"r3"},
+
+{id:"r2",n:"QB Draw",fam:"Run",form:"empty",qb:["both"],beats:["3-3-1","2-3-2","2-4-1","4-2-1","man","zone"],sit:["med","long","open","short"],
+ asn:[A("X","go","Vertical."),A("A","go","Vertical — push the corners off."),A("Y","out","Five and out."),A("Z","out","Five and out."),
+      A("R","go","Vertical up the seam."),C_("chipout")],
+ chip:["C"],
+ read:"Empty, everyone vertical to flush the coverage deep, QB tucks it up the middle behind the rush. Center chips one beat then releases to the flat as the bail-out.",
+ why:"Three rushers are your accidental blockers — eight yards upfield with their backs turned. Five verticals clear the coverage and the QB is gone. Center releasing clean means the second level has a body in it too.",
+ counter:"They'll rush two and keep a spy.",next:"r1",next2:"c1"},
+
+{id:"r3",n:"Jet Keep",fam:"Motion",form:"trips_rt",qb:["both"],beats:["man","press","1-5-1","2-4-1"],sit:["short","med","open","rz"],
+ asn:[A("A","jet","Jet motion across before the snap; take the handoff decision wide."),A("X","go","Vertical to clear."),A("Y","drag","Drag behind the jet action."),
+      A("Z","go","Vertical."),A("R","chipout","Chip and release opposite."),C_("lead")],
+ chip:["C"],pre:"A on jet motion — snap as he crosses the QB.",
+ read:"Give it to A if the edge is soft, keep it if the defense strings out. Whoever they chase, the other one has the ball.",
+ why:"Two live runners off one motion with a free-rushing front. Flow to the jet and the QB has the width of the field; stay home and A is on the edge with only a safety. You can also throw the throwback to whoever they forget.",
+ counter:"They'll chase the jet with a corner and stay home on the edge.",next:"m2",next2:"q2"},
+
+{id:"r4",n:"QB Counter",fam:"Run",form:"deuce",qb:["both"],beats:["2-4-1","3-3-1","man"],sit:["short","med","rz"],
+ asn:[A("X","go","Clear out."),A("A","drag","Backside drag."),A("Y","stay","Kick out the end."),A("Z","go","Clear out."),
+      A("R","stay","Lead through the gap."),C_("lead")],
+ chip:["C"],read:"One counter step to sell the sweep, then take it up the vacated gap behind the center.",
+ why:"They're aligned to chase the sweep because that's what they've seen. One step opposite and the gap they just vacated is nine yards wide.",
+ counter:"They'll sit on the counter and stay disciplined.",next:"r1",next2:"s2"},
+
+{id:"r5",n:"Empty QB Iso",fam:"Run",form:"empty",qb:["both"],beats:["0-6-1","0-7","1-5-1","zone"],sit:["short","gl","rz","med"],
+ asn:[A("X","go","Push the corner deep."),A("A","out","Wide out."),A("Y","strike","Vertical to occupy the safety."),A("Z","out","Wide out."),
+      A("R","cross","Cross to clear the middle."),C_("lead")],
+ chip:["C"],read:"Snap, one read at the box, then go. If they never rush, nobody can tackle a full-speed QB.",
+ why:"With zero rushers all seven defenders have their backs turned. A QB running into that is a guaranteed five before anybody reacts — and the center snapping is already ahead of him as a lead.",
+ counter:"They'll rush one or two to have a body home.",next:"c1",next2:"r1"},
+
+{id:"r6",n:"Zone Keep",fam:"Run",form:"doubles",qb:["both"],beats:["man","zone","2-3-2","2-4-1"],sit:["med","long","open","short"],
+ asn:[A("X","go","Vertical."),A("A","bubble","Bubble — the pitch option."),A("Y","cross","Cross behind the mesh."),A("Z","go","Vertical."),
+      A("R","stay","Mesh with the QB and read the edge."),C_("snapset")],
+ chip:["C"],read:"Mesh with R. Edge defender takes R = keep. He stays = give.",
+ why:"The edge defender must choose between R and the QB, and both choices lose. Straight man leaves nobody to help, and the center sealing the middle means the cutback is clean.",
+ counter:"They'll crash the edge hard and dare you to throw.",next:"v4",next2:"q2"},
+
+{id:"r7",n:"QB Sneak",fam:"Situational",form:"ace",qb:["both"],beats:["2-4-1","3-3-1","0-7","man","zone"],sit:["short","gl","rz"],
+ asn:[A("R","stay","Dive behind the center."),A("X","go","Clear the corner."),A("Z","go","Clear the corner."),
+      A("A","stay","Set the edge."),A("Y","stay","Set the edge."),C_("lead")],
+ chip:["C"],read:"Snap on 1 and go straight ahead. Fall forward.",
+ why:"One yard is one yard. Against a two-yard drop the QB is past the line before a defender crosses the LOS, and the center snapping is a lead blocker by default.",
+ counter:"They'll stack the middle — so next snap you bubble.",next:"q1",next2:"r1"},
+
+/* ===== SCREEN ===== */
+{id:"s1",n:"Tunnel Screen",fam:"Screen",form:"trips_rt",qb:["both"],beats:["man","press","3-3-1","2-4-1","2-3-2","4-2-1"],sit:["short","med","long","backed"],
+ asn:[A("X","go","Clear out."),A("A","stay","Inside-out — A and Y form the tunnel for Z."),A("Y","stay","Blocker in the tunnel."),
+      A("Z","screen","Two steps down, catch behind the LOS with A and Y in front."),A("R","chipout","Chip then release."),C_("snapset")],
+ chip:["C"],read:"Sell it — deep drop, then fire it to Z behind the two screeners.",
+ why:"Three rushers can't beat a screen. Their speed is turned against them: they're upfield behind the ball when it's caught and two blockers are already in front.",
+ counter:"They'll keep a defender home on the edge.",next:"q4",next2:"q2"},
+
+{id:"s2",n:"Bubble Screen",fam:"Screen",form:"doubles",qb:["both"],beats:["press","man","3-3-1","1-5-1","4-2-1"],sit:["short","med","open"],
+ asn:[A("X","go","Clear the outside."),A("A","bubble","Bubble — catch moving, get north."),A("Y","arrow","Arrow to the opposite flat."),
+      A("Z","go","Clear."),A("R","chipout","Chip then leak."),C_("snapset")],
+ chip:["C"],read:"Pre-snap: flat defender pressed on A with no help = throw it. Otherwise take it off the count.",
+ why:"A one-step throw with blockers able to get in front. Against press it's a free eight because the corner covering A has to beat a blocker to the ball.",
+ counter:"They'll widen and take the bubble away.",next:"q4",next2:"q5"},
+
+{id:"s3",n:"Middle Screen",fam:"Screen",form:"empty",qb:["both"],beats:["3-3-1","2-3-2","0-6-1","4-2-1"],sit:["long","med","short","backed"],
+ asn:[A("X","go","Vertical to clear the corners."),A("A","go","Vertical."),A("Y","stay","Sit and set the interior wall."),
+      A("Z","stay","Wall."),A("R","screen","Delay, then catch in the middle at four yards."),C_("snapset")],
+ chip:["C"],read:"The rush creates the space. Let them run past, then throw it over their heads to R.",
+ why:"Aggressive pressure manufactures the hole itself. R catches behind the wall of Y and Z with nobody at the second level, and the center has snapped and turned into a lead.",
+ counter:"They'll rush two and keep five back.",next:"q5",next2:"v1"},
+
+{id:"s4",n:"RB Pop",fam:"Screen",form:"doubles",qb:["both"],beats:["2-4-1","3-3-1","4-2-1","press"],sit:["short","med","long"],
+ asn:[A("X","go","Clear."),A("A","hitch","Now, to hold the flat defender."),A("Y","hitch","Now."),A("Z","go","Clear."),
+      A("R","stay","Wait two counts, then into the area the rush vacated."),C_("snapset")],
+ chip:["C"],read:"Two hitch throws set it up. Then pop R behind the rushers.",
+ why:"The classic behind-the-rush answer. It makes an aggressive rush a liability and forces them to rush less — which opens the QB run.",
+ counter:"They'll drop a lineman.",next:"r1",next2:"s1"},
+
+/* ===== RUB ===== */
+{id:"p1",n:"Post-Wheel",fam:"Rub",form:"doubles",qb:["both"],beats:["man","press","1-5-1","2-4-1","1-4-2"],sit:["med","long","open","edge","rz"],
+ asn:[A("X","post","Post off the corner — take him inside with you."),A("A","wheel","Wheel up the sideline off X's rub. THE throw."),
+      A("Y","drag","Drag underneath."),A("Z","go","Vertical."),A("R","chipout","Chip then checkdown."),C_("snapset")],
+ chip:["C"],read:"One look: has the corner trailed X inside? Yes = wheel over the top. They switched = A on a deep cross.",
+ why:"The best man-coverage beater in flag. X runs the corner off and the rub takes the trail defender's path — A is running free at 25 yards with nobody within five.",
+ counter:"They'll switch everything and take the over.",next:"p6",next2:"v5"},
+
+{id:"p2",n:"Mesh",fam:"Rub",form:"doubles",qb:["both"],beats:["man","press","zone","2-3-2"],sit:["med","short","long","backed"],
+ asn:[A("X","drag","Shallow cross, three yards deep."),A("A","drag","Shallow cross — X and A mesh six yards off the LOS."),
+      A("Y","dig","Twelve-yard dig behind the mesh."),A("Z","seam","Seam to hold the safety."),A("R","chipout","Chip and sit."),C_("snapflat")],
+ chip:["R"],read:"Mesh the two crossers, throw to the defender with the slowest feet. Ball out at ten.",
+ why:"Two crossers moving opposite directions force every man defender into a decision in the same instant. Whatever he picks, the other crosser is behind him at full speed. Center to the flat is the bail-out.",
+ counter:"They'll sit both shallow and take the crossers away.",next:"q5",next2:"p1"},
+
+{id:"p3",n:"Bunch Sling",fam:"Rub",form:"bunch_rt",qb:["both"],beats:["man","press","2-4-1"],sit:["short","med","open","rz"],
+ asn:[A("X","go","Clear the backside."),A("A","out","Four and out off the bunch — first release."),A("Y","slant","Slant in behind A's pick."),
+      A("Z","arrow","Arrow to the flat, third release."),A("R","chipout","Chip and release."),C_("snapset")],
+ chip:["C"],read:"How are they covering the bunch? Man with no switch call and the sling works. Throw A or Y.",
+ why:"Three receivers releasing in a five-yard window against man is a traffic accident. The middle release is always open because the first one took his defender with him.",
+ counter:"They'll switch and press the first release.",next:"p5",next2:"q6"},
+
+{id:"p4",n:"Switch Release",fam:"Rub",form:"trips_lt",qb:["both"],beats:["man","press","1-4-2"],sit:["med","long","open"],
+ asn:[A("X","go","Vertical."),A("A","post","Post from the slot."),A("Y","wheel","Wheel — A and Y switch at the snap."),
+      A("Z","drag","Shallow drag."),A("R","chipout","Checkdown."),C_("snapset")],
+ chip:["C"],read:"The switch forces a coverage handoff. Watch who hesitates and throw to that man.",
+ why:"Any coverage exchange against man creates half a second of confusion. At twenty yards that half second is three steps of separation.",
+ counter:"They'll stay with their own man and not switch.",next:"q3",next2:"p1"},
+
+{id:"p5",n:"Pick Slant",fam:"Rub",form:"stack_rt",qb:["both"],beats:["press","man","1-5-1"],sit:["short","med","rz"],
+ asn:[A("X","go","Clear."),A("A","slant","Slant off the stack — the picker's route."),A("Y","out","Five and out behind A's pick."),A("Z","slant","Slant from the back of the stack — free release."),
+      A("R","chipout","Chip and flat."),C_("snapset")],
+ chip:["C"],read:"The stacked man gets a free release. Throw the back man on the slant.",
+ why:"Stacking guarantees a clean release against press. Against a pressing team you should be in a stack or bunch every snap — it takes their best coverage tool and throws it away.",
+ counter:"They'll play off the stack and jump the slant.",next:"q4",next2:"p3"},
+
+{id:"p6",n:"Corner-Post",fam:"Rub",form:"trips_rt",qb:["both"],beats:["man","press","1-5-1","zone"],sit:["long","med","edge","rz"],
+ asn:[A("X","post","Post from the backside."),A("A","corner","Corner at twelve — the true route."),A("Y","out","Five and out to hold the flat."),
+      A("Z","go","Vertical."),A("R","chipout","Checkdown."),C_("snapset")],
+ chip:["C"],read:"Corner over A: outside leverage = corner route, inside = post behind him. Never throw the flat.",
+ why:"A corner-post puts a single defender in a two-way bind fifteen yards downfield with no help. Any QB who can throw a corner scores on this against man.",
+ counter:"They'll put a safety over A.",next:"v2",next2:"q5"},
+
+/* ===== SHOT ===== */
+{id:"v1",n:"Four Verts",fam:"Shot",form:"empty",qb:["both"],beats:["2-4-1","2-3-2","1-4-2","man","press"],sit:["long","med","open","edge"],
+ asn:[A("X","go","Fade, outside release."),A("A","seam","Seam — inside release, split the safeties."),A("Y","seam","Seam — split the other way."),
+      A("Z","go","Fade, outside release."),A("R","go","Vertical, hold the middle."),C_("chipseam")],
+ chip:["C"],read:"Two safeties = split them with the seams. One safety = fade away from him. Nothing = check down.",
+ why:"Six verticals against two deep forces both safeties to cover two men. It's arithmetic — unless they play perfect, somebody is one-on-one with no help. The center chipping then running the seam makes it seven.",
+ counter:"They'll drop the underneath defenders deeper to bracket the seams.",next:"v2",next2:"c3"},
+
+{id:"v2",n:"Deep Cross",fam:"Shot",form:"trips_rt",qb:["both"],beats:["2-3-2","1-4-2","2-4-1","zone"],sit:["long","med","open","edge"],
+ asn:[A("X","go","Clear the backside corner."),A("A","cross","Deep cross at fourteen — the ball."),A("Y","dig","Twelve-yard dig under the cross."),
+      A("Z","post","Post to bend the safety."),A("R","chipout","Chip and sit — checkdown."),C_("snapset")],
+ chip:["C"],read:"Watch the far safety. If he drives on the post, throw the cross behind him at twenty.",
+ why:"Two-high defenses have a hole in the middle exactly where a deep cross runs. The post pulls the safety out of position and the ball goes on the back shoulder.",
+ counter:"They'll play the cross with a linebacker dropping under it.",next:"v6",next2:"f1"},
+
+{id:"v3",n:"Play-Action Bomb",fam:"Shot",form:"ace",qb:["both"],beats:["1-5-1","1-4-2","man","press","zone"],sit:["long","edge","open","med"],
+ asn:[A("X","go","Vertical — the bomb."),A("A","post","Post — second bomb."),A("Y","stay","Sell the run block, then release to the flat."),
+      A("Z","go","Vertical."),A("R","stay","Sell the dive."),C_("chipout")],
+ chip:["C"],pre:"Two hard run steps by everyone, including the QB.",
+ read:"Sell it, then read the deep safety. Flat-footed safety or an islanded corner = throw the go to X.",
+ why:"They've watched the QB run all game. Two run steps freeze the underneath defenders, leaving one free rusher — so the deep ball is one-on-one with a flat-footed safety.",
+ counter:"They'll stay back and play two deep.",next:"r1",next2:"c1"},
+
+{id:"v4",n:"Throwback",fam:"Motion",form:"trips_rt",qb:["both"],beats:["man","press","zone","3-3-1","2-4-1"],sit:["med","short","rz","open"],
+ asn:[A("A","stay","Orbit motion behind the QB, then leak to the back-side flat."),A("X","go","Vertical to drag the corner across."),
+      A("Y","cross","Deep cross to the motion side."),A("Z","go","Vertical."),A("R","chipout","Chip and release."),C_("snapset")],
+ chip:["C"],pre:"A on orbit motion behind the QB — the defense follows.",
+ read:"The whole defense flows with the motion. The QB turns back and throws the leak to A or the swing to R on the empty side.",
+ why:"Motion sells one way, the ball goes the other. With everybody's back turned this is a walk-in — and once it works, they stop chasing motion all game, which kills their leverage on everything else.",
+ counter:"They'll stop chasing the motion.",next:"r1",next2:"q1"},
+
+{id:"v5",n:"Post-Corner",fam:"Shot",form:"doubles",qb:["both"],beats:["1-5-1","1-4-2","man","press"],sit:["long","edge","rz","med"],
+ asn:[A("X","post","Post — bend the single safety."),A("A","corner","Corner over the top on the opposite side."),A("Y","dig","Dig at twelve."),
+      A("Z","seam","Seam."),A("R","chipout","Checkdown."),C_("snapset")],
+ chip:["C"],read:"Single high = post away from the safety, or the corner if he's late. Two high = throw the dig.",
+ why:"Against one deep safety, a post and a corner on opposite sides make the safety pick a side. Whichever he picks, the other route is a catch at thirty.",
+ counter:"They'll play two deep and take the top off.",next:"v1",next2:"f1"},
+
+{id:"v6",n:"Y-Sail",fam:"Shot",form:"trips_lt",qb:["both"],beats:["zone","1-4-2","2-3-2","2-4-1"],sit:["long","med","edge"],
+ asn:[A("X","go","Clear the sideline."),A("A","go","Clear."),A("Y","corner","Sail at fourteen — the deep zone-buster."),
+      A("Z","out","Five and out under the sail."),A("R","chipout","Chip and checkdown."),C_("snapflat")],
+ chip:["R"],read:"Three levels: flat, out, sail. Deep-third defender sinks on the out = throw the sail over him.",
+ why:"Against any zone a corner over an out is a two-level conflict on one defender with twenty yards of grass behind him. Highest-completion deep throw in flag.",
+ counter:"They'll match the sail with a safety.",next:"v2",next2:"q5"},
+
+/* ===== FLOOD ===== */
+{id:"f1",n:"Flood Right",fam:"Flood",form:"trips_rt",qb:["both"],beats:["zone","2-4-1","2-3-2"],sit:["med","long","open","edge","backed"],
+ asn:[A("X","dig","Dig across from the back side."),A("A","flat","Flat, three yards."),A("Y","out","Eight and out — the middle level."),
+      A("Z","corner","Corner at fifteen — the deep level."),A("R","chipout","Chip and sit."),C_("leak")],
+ chip:["R"],read:"Three levels right. Flat defender drops = out. Sits = flat. Corner is the bomb. Center leaks behind all of it.",
+ why:"A 3-on-2 flood to one side means a zone defender is responsible for two levels, and he physically cannot. Every flood guarantees an open man at one of three depths, plus the center uncovered underneath.",
+ counter:"They'll rotate the safety to the flood side.",next:"f2",next2:"v6"},
+
+{id:"f2",n:"Hi-Lo Cross",fam:"Flood",form:"doubles",qb:["both"],beats:["zone","man","2-3-2","1-4-2"],sit:["med","long","open"],
+ asn:[A("X","cross","Deep cross at twelve."),A("A","drag","Shallow drag at two — same side, opposite direction."),A("Y","dig","Dig at thirteen."),
+      A("Z","go","Vertical."),A("R","chipout","Checkdown."),C_("snapset")],
+ chip:["C"],read:"Two men attacking the same linebacker from opposite directions. Throw whichever way he leans.",
+ why:"Hi-lo on one defender is the purest zone-beater there is. The crosser and the drag can't both be covered by one man and the safety can't reach either in time.",
+ counter:"They'll man up the crossers.",next:"p2",next2:"f1"},
+
+{id:"f3",n:"Spacing",fam:"Flood",form:"empty",qb:["both"],beats:["zone","0-6-1","2-4-1","1-5-1"],sit:["short","med","open","backed"],
+ asn:[A("X","hitch","Now five, sit."),A("A","out","Five and out."),A("Y","snag","Snag at six, sit between levels."),
+      A("Z","out","Five and out."),A("R","curl","Curl at ten."),C_("chipout")],
+ chip:["C"],
+ read:"Find the softest window and throw it there. Nothing over ten yards.",
+ why:"Against a no-rush six-man-under zone there's no vertical space, so you take the five-yard windows they can't defend and let athletes run. Center leaking gives you a sixth window right up the middle.",
+ counter:"They'll tighten up and press.",next:"q1",next2:"q3"},
+
+{id:"f4",n:"Sit vs Soft",fam:"Flood",form:"bunch_rt",qb:["both"],beats:["zone","0-6-1","0-7","2-3-2"],sit:["short","med","backed","open"],
+ asn:[A("X","drag","Drag into the vacated middle."),A("A","hitch","Now six, sit in the window."),A("Y","hitch","Now six."),
+      A("Z","curl","Curl at ten, sit."),A("R","chipout","Chip and sit."),C_("leak")],
+ chip:["R"],read:"Whichever window is softest. Catch it, turn up, get what you can.",
+ why:"When a defense plays ten yards off, the six-yard hitch is free every snap and the six yards become twelve after the catch because nobody is close enough to tag.",
+ counter:"They'll step up and press the hitch.",next:"q1",next2:"v1"},
+
+/* ===== MOTION ===== */
+{id:"m1",n:"Jet Sweep",fam:"Motion",form:"trips_rt",qb:["both"],beats:["man","press","2-4-1","zone"],sit:["short","med","open","rz","gl"],
+ asn:[A("A","jet","Jet motion, take the handoff at full speed."),A("X","go","Clear the backside."),A("Y","stay","Kick the force defender."),
+      A("Z","stay","Seal inside."),A("R","chipout","Chip and trail."),C_("lead")],
+ chip:["C"],pre:"A in jet motion — snap as he crosses the QB.",
+ read:"Give it. If the edge collapses, the QB keeps.",
+ why:"Man coverage with a free rusher and their backs turned. A receiver at full speed taking the ball on the move behind the snapping center is the fastest eight yards in the sport.",
+ counter:"They'll assign a defender to chase the jet.",next:"r3",next2:"v4"},
+
+{id:"m2",n:"Orbit Throwback",fam:"Motion",form:"doubles",qb:["both"],beats:["man","press","zone","3-3-1"],sit:["short","med","rz","open"],
+ asn:[A("A","stay","Orbit motion behind the QB, then swing to the vacated side."),A("X","go","Push vertical."),A("Y","cross","Cross to the motion side."),
+      A("Z","hitch","Now five."),A("R","chipout","Chip and release."),C_("snapset")],
+ chip:["C"],pre:"A on orbit motion. Defense declares.",
+ read:"Everything flows with the motion. Turn back and throw the swing to A behind the flow.",
+ why:"The throwback attacks the one thing every defense does — run to the motion. The back-side flat is emptied of defenders and A arrives at speed with nobody within ten.",
+ counter:"They'll stop chasing motion.",next:"r1",next2:"m1"},
+
+{id:"m3",n:"Reverse",fam:"Motion",form:"trips_lt",qb:["both"],beats:["man","press","zone"],sit:["med","short","open"],
+ asn:[A("A","jet","Jet motion right, take the handoff."),A("X","cross","Cross to clear."),A("Y","stay","Kick the edge."),
+      A("Z","stay","Seal."),A("R","stay","Trail the reverse."),C_("lead")],
+ chip:["C"],pre:"Hand to A on jet, then A flips to Z on the reverse.",
+ read:"Get it to A and let him decide. If the defense overflows, flip it to Z.",
+ why:"Two speed changes on one snap. Defenses that chase hard are dead; defenses that stay home concede the first five.",
+ counter:"They'll stay home and string it out.",next:"m1",next2:"r1"},
+
+{id:"m4",n:"Motion-to-Trips Keep",fam:"Motion",form:"doubles",qb:["both"],beats:["man","zone","1-5-1","2-3-2"],sit:["med","short","rz","open"],
+ asn:[A("R","motion","Motion from the backfield to trips right before the snap."),A("A","go","Vertical — win outside."),A("Y","out","Six and out."),
+      A("Z","go","Vertical, clear the corner."),A("X","drag","Drag to hold the backside."),C_("lead")],
+ chip:["C"],pre:"R motions out to make it 3x1, then snap.",
+ read:"If the defense adjusted late or is out of alignment, the QB takes it off the edge.",
+ why:"A late motion snap catches a defense mid-adjustment, and they're most vulnerable in the two seconds between the motion and the ball. The center snapping is already in the alley.",
+ counter:"They'll call their adjustment early.",next:"q5",next2:"r1"},
+
+/* ===== SITUATIONAL ===== */
+{id:"z1",n:"3rd & Short Power",fam:"Situational",form:"deuce",qb:["both"],beats:["man","zone","2-4-1","3-3-1","press"],sit:["short","gl","rz"],
+ asn:[A("X","go","Clear."),A("A","hitch","Now, to hold the flat defender."),A("Y","stay","Kick out the end."),A("Z","go","Clear."),
+      A("R","stay","Lead."),C_("lead")],
+ chip:["C"],read:"Snap on 1 and go. No reading — three yards is a body length.",
+ why:"You need two yards and you have a QB who runs. Handing off or throwing a five-yard route is giving away probability. And the center snapping is a free lead blocker.",
+ counter:"They crowd the box — so you've got the bubble next snap.",next:"q1",next2:"r1"},
+
+{id:"z2",n:"3rd & Long Verts",fam:"Situational",form:"empty",qb:["both"],beats:["man","zone","2-4-1","2-3-2","1-4-2"],sit:["long","open","edge"],
+ asn:[A("X","go","Vertical, beat the press and stack him."),A("A","seam","Seam."),A("Y","seam","Seam."),A("Z","go","Vertical."),
+      A("R","out","Eight and out — the chain-mover."),C_("chipseam")],
+ chip:["C"],read:"Verts first, seam second, out to R on three if all are bracketed.",
+ why:"On third and long the defense concedes the short stuff. Take the verticals, force a safety to choose — and the center chipping then running the seam gives you a seventh vertical nobody planned for.",
+ counter:"They'll bracket the seams with two deep.",next:"q5",next2:"v2"},
+
+{id:"z3",n:"Red Zone Fade/BS",fam:"Situational",form:"doubles",qb:["both"],beats:["man","press","2-4-1","1-5-1"],sit:["rz","gl","edge","med"],
+ asn:[A("X","fade","Back-shoulder fade to the pylon."),A("A","slant","Slant, quick."),A("Y","fade","Fade to the opposite pylon."),
+      A("Z","slant","Slant."),A("R","chipout","Chip and sit at the goal line."),C_("snapset")],
+ chip:["C"],read:"Single coverage outside = back shoulder at the pylon. Slants beat inside leverage.",
+ why:"The fade is a 50-50 ball that with a real arm is closer to 70-30, and no run-after-catch is needed because you're at the goal line.",
+ counter:"They'll play inside leverage and take the fade away.",next:"p5",next2:"q6"},
+
+{id:"z4",n:"Red Zone Rub-Now",fam:"Situational",form:"bunch_rt",qb:["both"],beats:["man","press","zone","2-4-1"],sit:["rz","gl","short"],
+ asn:[A("X","hitch","Now at the goal line."),A("A","slant","Slant off the rub — first look."),A("Y","flat","Flat to the front pylon."),
+      A("Z","arrow","Arrow off the bunch."),A("R","chipout","Sit."),C_("snapset")],
+ chip:["C"],read:"Bunch releases: whoever's defender got picked, throw it. Everything is under six yards.",
+ why:"In the compressed red zone a route doesn't need to be open long — half a second is enough. Rub releases create exactly that.",
+ counter:"They'll switch and press the bunch.",next:"z3",next2:"p3"},
+
+{id:"z5",n:"2-Pt Keep",fam:"Situational",form:"deuce",qb:["both"],beats:["man","zone","2-4-1","0-7","press"],sit:["gl","short","rz"],
+ asn:[A("X","hitch","Now to the goal line."),A("A","bubble","Bubble fake — sell it hard."),A("Y","flat","Flat on the back side."),
+      A("Z","hitch","Now."),A("R","stay","Lead through the B-gap."),C_("lead")],
+ chip:["C"],read:"Fake the bubble to A, then the QB takes it up the middle behind the center.",
+ why:"They key A's bubble because it's been open all game. Motion it away and run the QB through the space it leaves. On a two-point there's no kick to play safe with.",
+ counter:"They'll chase A.",next:"q1",next2:"r7"},
+
+{id:"z6",n:"Sideline Clock",fam:"Situational",form:"trips_rt",qb:["both"],beats:["man","zone","2-4-1","1-5-1"],sit:["long","med","open","edge"],
+ asn:[A("X","go","Vertical to clear."),A("A","out","Ten-yard out — throw it at the sideline."),A("Y","comeback","Comeback at twelve to the far sideline."),
+      A("Z","out","Eight and out."),A("R","chipout","Chip and checkdown."),C_("snapset")],
+ chip:["C"],read:"First sideline route that's open. Catch it, get out of bounds, stop the clock.",
+ why:"Two sideline routes at different depths on opposite sides. They can't cover both, and out-breaking routes stop the clock without needing a slide.",
+ counter:"They'll jam releases to slow you down.",next:"z2",next2:"q5"},
+
+{id:"z7",n:"Last-Play Bomb",fam:"Situational",form:"empty",qb:["both"],beats:["man","zone","1-5-1","2-4-1","2-3-2","press"],sit:["long","edge","open","med"],
+ asn:[A("X","go","Go up the sideline — jump ball."),A("A","go","Go."),A("Y","seam","Seam."),A("Z","go","Go up the other sideline."),
+      A("R","seam","Seam behind them."),C_("chipseam")],
+ chip:["C"],read:"Find the shortest defender and throw it over him. Nothing under thirty-five unless it's a last resort.",
+ why:"Four verticals plus two seams at one safety — and the center chipping then running a seventh vertical. Somebody is behind somebody and the ball is in the air before the coverage settles.",
+ counter:"—",next:"v1",next2:"v2"}
+];
+
+/* ---------- policy matrix ---------- */
+const POLICY = [
+ ["Nobody rushes · 0-6-1 / 0-7","No pass rush, 6-7 in coverage, all backs to the QB","QB run — Empty QB Iso or QB Draw. Throw: Spacing. Center Leak.","The QB is unaccounted for and every defender is running away from him. The center is also uncovered.","They start rushing 1-2 → Bubble Now and Slant-Flat."],
+ ["1 rusher · 1-5-1","5 under, 1 deep, NOBODY on the QB","QB Power / Jet Keep. At Fareed: Post-Wheel, then Play-Action Bomb. Center Leak is free.","Six eligibles plus the snapper against six defenders leaves the QB free, and one safety can't cover a post behind a crosser.","They add a spy → Four Verts and Deep Cross. The spy is one less body in coverage."],
+ ["2 rushers · 2-4-1","4 under, 1 deep — their base","Flood Right or Post-Wheel. Chip one, let the other go, QB slides. Center chips to the flat.","You have a plus-one in coverage and a safety alone downfield. Flood the plus-one and bend the safety.","They go two-high → Hi-Lo Cross and Sit vs Soft underneath."],
+ ["3 rushers · 3-3-1","3 under, 1 deep, heavy pressure","Ball out in 1.5s: Double Slant or Bubble Now. Or QB Draw behind them.","Three rushers means three free lanes AND six eligibles on four defenders.","They back off to 2 → QB Power, because nobody is on the QB again."],
+ ["4 rushers · 4-2-1","3 in coverage, four free lanes","Bubble Now, Slant-Flat, Tunnel Screen, QB draw into the vacated lanes.","Only three coverage bodies for six eligibles plus the QB. Somebody is uncovered at the snap.","They drop a man → QB Draw and Middle Screen."],
+ ["2 deep safeties · 1-4-2 / 2-3-2","Top taken away, middle wide open","Seam and Deep Cross, or run the QB straight at the safeties. Center Leak behind them.","Two safeties can't help underneath. Attack the void between the under and the deep.","They drop a safety down → Play-Action Bomb over the top."],
+ ["Man / press","Everyone has a body, nobody has help","Rub and stack: Post-Wheel, Bunch Sling, Pick Slant, Mesh. Center Arrow.","One defender can't cover two crossing receivers, a stack gives a free release, and the center is covered by somebody else's trail.","They switch everything → Switch Release and Now + Go."],
+ ["Soft zone, 10 yards off","Everything underneath is free","Sit vs Soft, Spacing, Bubble Now.","They're conceding six yards and six more after the catch. Take it until they step up.","They press → Now + Go over their heads."],
+ ["Red zone / goal line","No room to run routes","Red Zone Rub-Now, Fade/Back-Shoulder, 2-Pt Keep, Center Arrow.","Back-shoulder and rub releases win in tight space. The QB's legs and the center's free release need no space at all.","They press outside → QB Power and 2-Pt Keep up the middle."],
+ ["They're timing the snap","Jumping the count, rusher leaving early","Snap on 1 in the red zone, hard count on the plus side. QB Draw on a slow count.","Freezing them half a second buys the QB the whole play.","They jump → free five and they back off the ball."]
+];
+
+/* ==========================================================
+   RENDER
+   ========================================================== */
+const $ = s=>document.querySelector(s);
+const $$ = s=>[...document.querySelectorAll(s)];
+const el = (t,c,h)=>{const e=document.createElement(t); if(c)e.className=c; if(h!=null)e.innerHTML=h; return e;};
+const esc = s=>String(s);
+const byId = id=>PLAYS.find(p=>p.id===id);
+
+function buildRoute(start, fn, side){
+  const pts=[start]; let [x,y]=start;
+  for(const [dx,dy] of fn(side)){ x+=dx; y+=dy; pts.push([x,y]); }
+  return pts;
+}
+const pathFrom = pts=>pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+
+const DASHED = ["stay","screen","bubble","swing","flat","jet","motion","snapset","leak"];
+
+function diagram(play, frontKey){
+  const F = FORMS[play.form];
+  const FR = FRONTS[frontKey] || FRONTS["2-4-1"];
+  let s = `<svg class="dia" viewBox="0 0 100 110" role="img" aria-label="${esc(play.n)} diagram">`;
+  s += `<defs><marker id="ah" markerWidth="4.2" markerHeight="4.2" refX="3.3" refY="2.1" orient="auto">
+    <path d="M0,0 L4.2,2.1 L0,4.2 z" fill="#4FC3E8"/></marker>
+    <marker id="ahc" markerWidth="4.2" markerHeight="4.2" refX="3.3" refY="2.1" orient="auto">
+    <path d="M0,0 L4.2,2.1 L0,4.2 z" fill="#FFD27A"/></marker></defs>`;
+  s += `<rect x="0" y="0" width="100" height="110" fill="#101B15"/>`;
+  for(let y=14;y<110;y+=10) s += `<line class="yl" x1="0" y1="${y}" x2="100" y2="${y}"/>`;
+  for(let x=33;x<=67;x+=17) s += `<line class="hash" x1="${x}" y1="0" x2="${x}" y2="110"/>`;
+  s += `<line class="los" x1="0" y1="${LOS}" x2="100" y2="${LOS}"/>`;
+  s += `<text class="legend" x="1.5" y="62.6">LOS</text>`;
+
+  // defense
+  FR.def.forEach(([x,y],i)=>{
+    const isRush = i < FR.r, isDeep = y < 45;
+    s += `<circle class="dl" cx="${x}" cy="${y}" r="3.2"/>`;
+    s += `<text x="${x}" y="${y+1.5}" text-anchor="middle">${isRush?"R":(isDeep?"S":"D")}</text>`;
+    if(isRush) s += `<line class="rushline" x1="${x}" y1="${y-3}" x2="${x}" y2="${LOS-1}"/>`;
+  });
+
+  const qb = F.p.QB, cen = F.p.C;
+  // snap line C -> QB
+  s += `<path class="snap" d="M${cen[0]} ${cen[1]+3} L${qb[0]} ${qb[1]-3.2}"/>`;
+  s += `<text class="legend" x="${cen[0]+1.6}" y="${(cen[1]+qb[1])/2}">SNAP</text>`;
+  // rush buffer for the center if he is blocking
+  const cAsn = (play.asn||[]).find(a=>a.p==="C");
+  if(cAsn && ["snapset","lead","chipout","chipseam"].includes(cAsn.r)){
+    s += `<path class="bufc" d="M${cen[0]-4.5} ${cen[1]+2.5} q4.5,-7 9,0"/>`;
+  }
+
+  // offense
+  for(const [pos,start] of Object.entries(F.p)){
+    const a = (play.asn||[]).find(z=>z.p===pos);
+    if(pos === "QB"){
+      s += `<circle class="ol" cx="${start[0]}" cy="${start[1]}" r="3.6"/><text x="${start[0]}" y="${start[1]+1.5}" text-anchor="middle">Q</text>`;
+      continue;
+    }
+    const side = start[0] < 50 ? -1 : 1;
+    if(a && pos !== "C"){
+      const pts = buildRoute(start, RT[a.r]||RT.snapset, side);
+      s += `<path class="${DASHED.includes(a.r)?'rt2':'route'}" d="${pathFrom(pts)}" marker-end="url(#ah)"/>`;
+    }
+    s += `<circle class="${pos==='C'?'cen':'ol'}" cx="${start[0]}" cy="${start[1]}" r="${pos==='C'?3.3:3.2}"/>`;
+    s += `<text x="${start[0]}" y="${start[1]+1.5}" text-anchor="middle">${esc(pos)}</text>`;
+    if(a){
+      s += `<text class="legend" x="${start[0]}" y="${start[1]+6.6}" text-anchor="middle">${esc(a.r.toUpperCase())}</text>`;
+      if(pos === "C"){
+        const pts = buildRoute(start, RT[a.r]||RT.snapset, side);
+        if(a.r !== "snapset") s += `<path class="chipc" d="${pathFrom(pts)}" marker-end="url(#ahc)"/>`;
+      }
+    }
+  }
+  return s + `</svg>`;
+}
+
+/* ==========================================================
+   STATE + SCORING
+   ========================================================== */
+const state = {front:"2-4-1", cov:"zone", qb:"kais", down:"3rd", dist:"med", zone:"open", fam:"ALL", play:null};
+
+function score(p){
+  let sc = 0;
+  if(p.beats.includes(state.front)) sc += 16;
+  if(p.beats.includes(state.cov)) sc += 11;
+  if(state.cov==="man" && p.beats.includes("press")) sc += 4;
+  if(state.cov==="press" && p.beats.includes("man")) sc += 4;
+  if(p.qb.includes(state.qb) || p.qb.includes("both")) sc += 6;
+  if(p.fam==="Quick") sc += 4;
+  if(p.fam==="Center") sc += 3;
+  if(p.sit.includes(state.dist)) sc += 7;
+  if(p.sit.includes(state.zone)) sc += 8;
+  if(state.zone==="gl" && p.sit.includes("short")) sc += 4;
+  if(state.zone==="gl" && p.sit.includes("long")) sc -= 3;
+  if(state.zone==="rz" && p.sit.includes("long")) sc -= 2;
+  if(state.dist==="long" && p.sit.includes("short")) sc -= 2;
+  const fr = (FRONTS[state.front]||{r:2}).r;
+  if(fr>=4){ if(p.fam==="Quick"||p.fam==="Screen") sc += 12; if(p.fam==="Run") sc += 6; if(p.fam==="Shot") sc -= 5; }
+  else if(fr===3){ if(p.fam==="Quick"||p.fam==="Screen") sc += 9; if(p.fam==="Run") sc += 3; if(p.fam==="Shot") sc -= 3; }
+  else if(fr===1){ if(p.fam==="Run") sc += 5; if(p.fam==="Center") sc += 3; }
+  else if(fr===0){ if(p.fam==="Run") sc += 13; if(p.fam==="Screen") sc -= 5; if(p.fam==="Quick") sc += 3; if(p.fam==="Center") sc += 4; }
+  if(state.down==="3rd"||state.down==="4th"){ if(p.fam==="Situational"||p.fam==="Rub") sc += 4; if(p.fam==="Screen") sc += 3; }
+  if(state.down==="1st"&&state.dist==="med"&&p.fam==="Quick") sc += 3;
+  // man + a light rush is the best QB-run situation there is: every defender has his back turned
+  if(state.cov==="man" || state.cov==="press"){
+    if(p.fam==="Run" && fr<=1) sc += 6;
+    if(p.fam==="Center" && fr<=1) sc += 4;
+  }
+  // two-deep: the answer is between the safeties, not a perimeter throw
+  const fd = (FRONTS[state.front]||{d:1}).d;
+  if(fd>=2){ if(["Shot","Flood","Rub"].includes(p.fam)) sc += 5;
+             if(p.asn.some(a=>["cross","seam","over","post"].includes(a.r))) sc += 5; }
+  sc += Math.random()*3;
+  return sc;
+}
+/* score each play exactly once per call — rolling the dice inside the sort
+   comparator makes the ordering inconsistent and mis-ranks plays. */
+const rank = ()=>{
+  const s = new Map(PLAYS.map(p=>[p.id, score(p)]));
+  return [...PLAYS].sort((a,b)=>s.get(b.id)-s.get(a.id));
+};
+
+/* ---------- share / deep link ---------- */
+function linkFor(p){
+  const q = new URLSearchParams({f:state.front,c:state.cov,q:state.qb,d:state.down,s:state.dist,z:state.zone,p:p.id});
+  return location.href.split("#")[0] + "#" + q.toString();
+}
+function callText(p){
+  const dist = state.dist==="short"?"1-3":state.dist==="med"?"4-7":"8+";
+  return `${state.down} & ${dist} · vs ${state.front} ${state.cov.toUpperCase()} · ${p.n.toUpperCase()} (${FORMS[p.form].label}) · QB: KAIS/FAREED\n${linkFor(p)}`;
+}
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove("on"), 1900);
+}
+function scrollToCard(smooth){
+  const o = $("#out"); if(!o) return;
+  const y = o.getBoundingClientRect().top + window.scrollY - 54;
+  window.scrollTo({top:y, behavior: smooth ? "smooth" : "auto"});
+}
+async function copy(str, msg){
+  try{ await navigator.clipboard.writeText(str); toast(msg); }
+  catch{
+    const ta=el("textarea"); ta.value=str; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove(); toast(msg);
+  }
+}
+
+/* ==========================================================
+   RENDER CALL
+   ========================================================== */
+function assignmentTable(p){
+  return `<table class="asn">${p.asn.map(a=>
+    `<tr class="${a.p==='C'?'isC':''}"><td class="p">${esc(a.p)}</td><td class="r">${esc(a.r.toUpperCase())}</td><td class="n">${esc(a.n)}</td></tr>`
+  ).join("")}</table>`;
+}
+function altBtn(p, tag){
+  const b = el("button","altbtn");
+  b.innerHTML = `<i>${esc(tag)}</i><b>${esc(p.n)}</b><i>${esc(FORMS[p.form].label)}</i>`;
+  b.onclick = ()=>{ showPlay(p.id, true); scrollToCard(true); };
+  return b;
+}
+
+function showPlay(forceId, pushHash){
+  const list = rank();
+  const topId = forceId || state.play || list[0].id;
+  const p = byId(topId) || list[0];
+  state.play = p.id;
+  const alts = list.filter(x=>x.id!==p.id).slice(0,3);
+  const out = $("#out");
+
+  out.innerHTML = `
+  <div class="card">
+    <div class="cardhead">
+      <div class="playname"><span class="num">${esc(p.id.toUpperCase())}</span>${esc(p.n)}</div>
+      <div class="meta">${esc(state.down)} &amp; ${esc(state.dist==="short"?"1-3":state.dist==="med"?"4-7":"8+")}
+        · vs ${esc(state.front)} ${esc(state.cov.toUpperCase())} · ${esc(FORMS[p.form].label)}</div>
+      <div class="chips">
+        <span class="chip hot">KAIS / FAREED</span>
+        <span class="chip">${esc(p.fam)}</span>
+        ${p.chip&&p.chip.length?`<span class="chip hot">CENTER: ${esc(p.chip.join("+"))}</span>`:`<span class="chip">CENTER RELEASES</span>`}
+        <span class="chip">${esc(p.beats.length)} looks beaten</span>
+      </div>
+    </div>
+    <div class="body2">
+      <div class="diawrap">
+        ${diagram(p, state.front)}
+        <div class="key">blue = us · red = them (R rusher, S deep) · <b style="color:var(--flag)">amber = CENTER</b> · dashed white = the snap · dashed blue = route behind the LOS</div>
+      </div>
+      <div class="cols">
+        ${p.pre?`<div class="blk"><h4>Pre-snap</h4><p>${esc(p.pre)}</p></div>`:""}
+        <div class="blk"><h4>Assignments</h4>${assignmentTable(p)}</div>
+        <div class="blk"><h4>QB read</h4><p>${esc(p.read)}</p></div>
+        <div class="blk"><h4>Why it beats ${esc(state.front)} ${esc(state.cov.toUpperCase())}</h4><p>${esc(p.why)}</p></div>
+        <div class="blk warn"><h4>What they'll do about it</h4><p>${esc(p.counter)}</p></div>
+        <div class="blk"><h4>The answer</h4>
+          <button class="altbtn wide" data-go="${esc(p.next)}"><i>NEXT CALL</i><b>${esc((byId(p.next)||{n:"—"}).n)}</b></button>
+          ${p.next2&&byId(p.next2)?`<button class="altbtn wide" data-go="${esc(p.next2)}"><i>SECOND ANSWER</i><b>${esc(byId(p.next2).n)}</b></button>`:""}
+        </div>
+      </div>
+    </div>
+    <div class="alts"><div class="key" style="flex:0 0 100%">Other calls that fit this look</div></div>
+  </div>`;
+
+  const row = out.querySelector(".alts");
+  alts.forEach((a,i)=>row.appendChild(altBtn(a,"ALT "+(i+1))));
+  out.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{ showPlay(b.dataset.go,true); scrollToCard(true); });
+  if(pushHash !== false) history.replaceState(null,"","#"+new URLSearchParams(
+    {f:state.front,c:state.cov,q:state.qb,d:state.down,s:state.dist,z:state.zone,p:p.id}).toString());
+}
+
+/* ==========================================================
+   OTHER TABS
+   ========================================================== */
+function renderMatrix(){
+  const t = $("#matrix");
+  t.innerHTML = `<tr><th>Their look</th><th>What it means</th><th>Call</th><th>Why</th><th>If they adjust</th></tr>`;
+  POLICY.forEach(r=>{ t.innerHTML += `<tr><td class="k">${esc(r[0])}</td><td>${esc(r[1])}</td><td><strong>${esc(r[2])}</strong></td><td>${esc(r[3])}</td><td>${esc(r[4])}</td></tr>`; });
+}
+function renderFamRow(){
+  const fams = ["ALL",...new Set(PLAYS.map(p=>p.fam))];
+  const fr = $("#famrow"); fr.innerHTML = "";
+  fams.forEach(f=>{
+    const b = el("button", f===state.fam?"on":"", esc(f.toUpperCase()));
+    b.onclick = ()=>{state.fam=f; renderFamRow(); renderBook();};
+    fr.appendChild(b);
+  });
+}
+function renderBook(){
+  const b = $("#book"); b.innerHTML = "";
+  PLAYS.filter(p=>state.fam==="ALL"||p.fam===state.fam).forEach(p=>{
+    const m = el("div","mini");
+    m.innerHTML = `
+      <div class="mh"><b>${esc(p.n)}</b><i>${esc(p.id.toUpperCase())}</i></div>
+      <div style="border-bottom:1px solid var(--line)">${diagram({...p,pre:null}, state.front)}</div>
+      <div class="mb"><em>${esc(p.fam.toUpperCase())} · ${esc(FORMS[p.form].label)}${p.chip&&p.chip.length?" · CENTER CHIPS":""} · KAIS/FAREED</em>${esc(p.read)}</div>
+      <div class="mh2">IF THEY: ${esc(p.counter)}<br>→ ${esc((byId(p.next)||{n:"—"}).n)}</div>`;
+    b.appendChild(m);
+  });
+}
+
+/* ==========================================================
+   WIRING
+   ========================================================== */
+function renderFrontGrid(){
+  const g = $("#frontgrid"); g.innerHTML = "";
+  Object.entries(FRONTS).forEach(([k,v])=>{
+    const b = el("button", k===state.front?"on":"");
+    b.innerHTML = `<span>${esc(v.tag)}</span><small>${esc(v.short)}</small>`;
+    b.onclick = ()=>{ state.front = k; $("#front_read").textContent = v.read; renderFrontGrid(); showPlay(null,true); renderBook(); };
+    g.appendChild(b);
+  });
+}
+function seg(id, key){
+  $$("#"+id+" button").forEach(btn=>{
+    btn.onclick = ()=>{
+      $$("#"+id+" button").forEach(x=>x.classList.remove("on"));
+      btn.classList.add("on"); state[key] = btn.dataset.v; showPlay(null,true);
+    };
+  });
+}
+
+function applyHash(){
+  const h = location.hash.replace(/^#/,"");
+  if(!h) return;
+  const q = new URLSearchParams(h);
+  const set = (k,v,valid)=>{ if(v && valid.includes(v)) state[k]=v; };
+  set("f", q.get("f"), Object.keys(FRONTS));
+  set("c", q.get("c"), ["zone","man","press"]);
+  set("q", q.get("q"), ["kais","fareed","either"]);
+  set("d", q.get("d"), ["1st","2nd","3rd","4th"]);
+  set("s", q.get("s"), ["short","med","long"]);
+  set("z", q.get("z"), ["backed","open","edge","rz","gl"]);
+  if(q.get("p") && byId(q.get("p"))) state.play = q.get("p");
+  // reflect in the UI
+  $$("#i_cov button").forEach(b=>b.classList.toggle("on", b.dataset.v===state.cov));
+  $$("#i_qb button").forEach(b=>b.classList.toggle("on", b.dataset.v===state.qb));
+  $$("#i_down button").forEach(b=>b.classList.toggle("on", b.dataset.v===state.down));
+  $$("#i_dist button").forEach(b=>b.classList.toggle("on", b.dataset.v===state.dist));
+  $("#i_zone").value = state.zone;
+}
+
+function boot(){
+  applyHash();
+  renderFrontGrid();
+  seg("i_cov","cov"); seg("i_qb","qb"); seg("i_down","down"); seg("i_dist","dist");
+  $("#i_zone").onchange = e=>{ state.zone = e.target.value; showPlay(null,true); };
+  $("#front_read").textContent = FRONTS[state.front].read;
+  $("#btn_call").onclick = ()=>{ state.play = null; showPlay(null,true); scrollToCard(true); toast("New call"); };
+  $("#btn_share").onclick = async ()=>{
+    const p = byId(state.play) || rank()[0];
+    const url = linkFor(p), text = callText(p);
+    if(navigator.share){ try{ await navigator.share({title:"OC — "+p.n, text, url}); return; }catch(e){ if(e && e.name==="AbortError") return; } }
+    copy(text, "Call copied");
+  };
+  $$("#tabs button").forEach(t=>{
+    t.onclick = ()=>{
+      $$("#tabs button").forEach(x=>x.classList.remove("on")); t.classList.add("on");
+      $$("main section").forEach(s=>s.classList.remove("on"));
+      $("#tab-"+t.dataset.t).classList.add("on");
+      if(t.dataset.t==="book"){ renderFamRow(); renderBook(); }
+      window.scrollTo({top:0});
+    };
+  });
+  $("#homelink").textContent = location.href.split("#")[0];
+  renderMatrix();
+  showPlay(state.play, !!state.play);
+  // arriving from a texted link: go straight to the call
+  if(/[#&]p=/.test(location.hash)) setTimeout(()=>scrollToCard(false), 60);
+}
+boot();
+window.addEventListener("hashchange", ()=>{ applyHash(); $("#front_read").textContent = FRONTS[state.front].read; renderFrontGrid(); showPlay(state.play); });
+window.__oc = {PLAYS, FRONTS, FORMS, RT, state, showPlay, diagram, rank, score, linkFor, callText};
+</script>
+</body>
+</html>
