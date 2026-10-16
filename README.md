@@ -1,10 +1,17 @@
 # AI Offensive Coordinator — 7v7 Flag
 
-A play-caller for our 7v7 flag team. Pick what the defense is showing you, get the call,
-the QB read, why it works, and the counter for when they adjust.
+## The link
 
-**Open it on your phone:** add to home screen (Share → Add to Home Screen) and it runs full-screen,
-works offline, and needs no app store.
+# **tinyurl.com/flagoc**
+
+Text that to the group chat. It opens on any iPhone, works offline, no app and no sign-in.
+On your own phone: Share → **Add to Home Screen** and it runs full-screen like a real app.
+
+Tap **SHARE** in the app to drop *this exact call* into the group — the receiver's link opens
+straight onto the play with their front, coverage and situation already loaded.
+
+The site itself lives at `ar33s08.github.io/oc-bfterv/`; the short link is the only thing worth
+typing. Repo: `github.com/ar33s08/oc-bfterv`.
 
 ## How to use it at the field
 

@@ -368,8 +368,9 @@ table.matrix td.k{font-family:var(--mono);color:var(--flag);white-space:nowrap;f
 </main>
 
 <div class="foot">
-  AI Offensive Coordinator · 7v7 flag · works offline · add to home screen for full screen<br>
-  <span id="homelink"></span>
+  <b style="color:var(--flag);font-size:14px" id="homelink"></b><span id="homelinknote"></span><br>
+  tap CALL IT for a new call · SHARE sends this exact call to the group<br>
+  add to home screen (Share → Add to Home Screen) to run it full screen and offline
 </div>
 <div class="toast" id="toast"></div>
 
@@ -962,14 +963,19 @@ const rank = ()=>{
   return [...PLAYS].sort((a,b)=>s.get(b.id)-s.get(a.id));
 };
 
-/* ---------- share / deep link ---------- */
+/* ---------- share / deep link ----------
+   SHORT is the vanity base. The hash never reaches the shortener's server, so a
+   redirect preserves it and the play still opens. Keep the payload to the fields
+   that change what the card shows — the play id pins the call itself. */
+const SHORT = "https://tinyurl.com/flagoc";
 function linkFor(p){
-  const q = new URLSearchParams({f:state.front,c:state.cov,q:state.qb,d:state.down,s:state.dist,z:state.zone,p:p.id});
-  return location.href.split("#")[0] + "#" + q.toString();
+  const q = new URLSearchParams({f:state.front,c:state.cov,d:state.down,s:state.dist,z:state.zone,p:p.id});
+  return SHORT + "#" + q.toString();
 }
 function callText(p){
   const dist = state.dist==="short"?"1-3":state.dist==="med"?"4-7":"8+";
-  return `${state.down} & ${dist} · vs ${state.front} ${state.cov.toUpperCase()} · ${p.n.toUpperCase()} (${FORMS[p.form].label}) · QB: KAIS/FAREED\n${linkFor(p)}`;
+  return `${state.down} & ${dist} vs ${state.front} ${state.cov.toUpperCase()} → ${p.n.toUpperCase()} (${FORMS[p.form].label})`
+       + `\n${SHORT}`;
 }
 function toast(msg){
   const t = $("#toast"); t.textContent = msg; t.classList.add("on");
@@ -978,7 +984,7 @@ function toast(msg){
 function scrollToCard(smooth){
   const o = $("#out"); if(!o) return;
   const y = o.getBoundingClientRect().top + window.scrollY - 54;
-  window.scrollTo({top:y, behavior: smooth ? "smooth" : "auto"});
+  try{ window.scrollTo({top:y, behavior: smooth ? "smooth" : "auto"}); }catch(e){ /* jsdom + old browsers */ }
 }
 async function copy(str, msg){
   try{ await navigator.clipboard.writeText(str); toast(msg); }
@@ -1047,8 +1053,10 @@ function showPlay(forceId, pushHash){
   const row = out.querySelector(".alts");
   alts.forEach((a,i)=>row.appendChild(altBtn(a,"ALT "+(i+1))));
   out.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{ showPlay(b.dataset.go,true); scrollToCard(true); });
-  if(pushHash !== false) history.replaceState(null,"","#"+new URLSearchParams(
-    {f:state.front,c:state.cov,q:state.qb,d:state.down,s:state.dist,z:state.zone,p:p.id}).toString());
+  if(pushHash !== false){
+    const qs = new URLSearchParams({f:state.front,c:state.cov,d:state.down,s:state.dist,z:state.zone,p:p.id}).toString();
+    try{ history.replaceState(null,"","#"+qs); }catch(e){ /* file:// can refuse hash-only replaceState */ }
+  }
 }
 
 /* ==========================================================
@@ -1133,7 +1141,7 @@ function boot(){
     const p = byId(state.play) || rank()[0];
     const url = linkFor(p), text = callText(p);
     if(navigator.share){ try{ await navigator.share({title:"OC — "+p.n, text, url}); return; }catch(e){ if(e && e.name==="AbortError") return; } }
-    copy(text, "Call copied");
+    copy(text + "\n" + url, "Call copied");
   };
   $$("#tabs button").forEach(t=>{
     t.onclick = ()=>{
@@ -1144,7 +1152,7 @@ function boot(){
       window.scrollTo({top:0});
     };
   });
-  $("#homelink").textContent = location.href.split("#")[0];
+  $("#homelink").textContent = SHORT.replace(/^https:\/\//,"");
   renderMatrix();
   showPlay(state.play, !!state.play);
   // arriving from a texted link: go straight to the call
