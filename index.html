@@ -1114,13 +1114,14 @@ function applyHash(){
   const h = location.hash.replace(/^#/,"");
   if(!h) return;
   const q = new URLSearchParams(h);
-  const set = (k,v,valid)=>{ if(v && valid.includes(v)) state[k]=v; };
-  set("f", q.get("f"), Object.keys(FRONTS));
-  set("c", q.get("c"), ["zone","man","press"]);
-  set("q", q.get("q"), ["kais","fareed","either"]);
-  set("d", q.get("d"), ["1st","2nd","3rd","4th"]);
-  set("s", q.get("s"), ["short","med","long"]);
-  set("z", q.get("z"), ["backed","open","edge","rz","gl"]);
+  // NOTE: the short hash keys are not the state property names — map them explicitly.
+  const set = (key, v, valid)=>{ if(v && valid.includes(v)) state[key] = v; };
+  set("front", q.get("f"), Object.keys(FRONTS));
+  set("cov",   q.get("c"), ["zone","man","press"]);
+  set("qb",    q.get("q"), ["kais","fareed","either"]);
+  set("down",  q.get("d"), ["1st","2nd","3rd","4th"]);
+  set("dist",  q.get("s"), ["short","med","long"]);
+  set("zone",  q.get("z"), ["backed","open","edge","rz","gl"]);
   if(q.get("p") && byId(q.get("p"))) state.play = q.get("p");
   // reflect in the UI
   $$("#i_cov button").forEach(b=>b.classList.toggle("on", b.dataset.v===state.cov));
