@@ -13,7 +13,11 @@ grep -q "JAVASCRIPT ERRORS: none" "$OUT" || { echo "JS ERRORS - not deploying"; 
 rm -f "$OUT"
 
 # 2. ship
-git add index.html README.md deploy.sh .gitignore
+# tinyurl.com/flagoc was created with an unencoded target, so it redirects to
+# ".../oc-bfterv/&alias=flagoc". Serve that literal path so the pretty alias works.
+mkdir -p '&alias=flagoc'
+cp -f index.html '&alias=flagoc/index.html'
+git add -A
 git commit -q -m "${1:-update plays}" || echo "(nothing to commit)"
 git push -q origin main
 echo "deployed -> https://tinyurl.com/flagoc"
