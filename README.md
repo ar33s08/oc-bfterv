@@ -7,11 +7,19 @@
 Text that to the group chat. It opens on any iPhone, works offline, no app and no sign-in.
 On your own phone: Share → **Add to Home Screen** and it runs full-screen like a real app.
 
-Tap **SHARE** in the app to drop *this exact call* into the group — the receiver's link opens
-straight onto the play with their front, coverage and situation already loaded.
+Backup link if the short one ever breaks: `tinyurl.com/flagoc2`
 
-The site itself lives at `ar33s08.github.io/oc-bfterv/`; the short link is the only thing worth
-typing. Repo: `github.com/ar33s08/oc-bfterv`.
+**QR code:** `qr-flagoc.png` — save it to your camera roll and drop it in the group, or keep it
+pulled up on the sideline for anyone to scan.
+
+Tap **SHARE** in the app to drop *this exact call* into the group — a text line plus a link that
+opens straight onto that play with their front, coverage and situation already loaded.
+
+The site itself lives at `ar33s08.github.io/oc-bfterv/`. Repo: `github.com/ar33s08/oc-bfterv`.
+
+> Why the odd path `&alias=flagoc` exists: the short link was created with an unencoded target, so
+> tinyurl redirects to `.../oc-bfterv/&alias=flagoc`. That literal folder is served so the pretty
+> alias keeps working. `deploy.sh` copies `index.html` into it — don't delete the folder.
 
 ## How to use it at the field
 
